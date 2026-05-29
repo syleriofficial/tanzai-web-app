@@ -1,4 +1,4 @@
-# Tanzai Web App V12
+# Tanzai
 
 Production-ready Tanzai frontend connected to backend API.
 
