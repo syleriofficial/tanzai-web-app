@@ -2,14 +2,14 @@
 
 Production-ready Tanzai frontend connected to backend API.
 
-## Added in V12
+## Tanzai V13 Stable Release
 - Admin Dashboard
 - Local analytics/event tracking
 - User/message/error/response-time cards
 - Recent activity table
 - Admin route button
 - Revenue placeholder for future subscription
-- Previous V11 memory/custom instructions retained
+- Memory/custom instructions retained
 - Email, Google, Apple, Microsoft login buttons through Supabase
 - Voice input base
 - Dark/Light mode
