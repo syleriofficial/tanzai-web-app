@@ -40,7 +40,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} bg-background`}>
-      <body className="font-sans antialiased">{children}</body>
+      <Script
+  src="https://www.googletagmanager.com/gtag/js?id=G-0XV20DC2QL"
+  strategy="afterInteractive"
+/>
+
+<Script id="google-analytics" strategy="afterInteractive">
+  {`
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0XV20DC2QL');
+  `}
+</Script>{children}</body>
     </html>
   )
 }
