@@ -34,23 +34,53 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMsg])
     setIsThinking(true)
 
-    setTimeout(() => {
-      setIsThinking(false)
+    try {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: text,
+      messages: [...messages, userMsg].map((m) => ({
+        role: m.role,
+        content: m.content,
+      })),
+    }),
+  })
 
-      const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content:
-          'Tanzai AI engine is being connected. Your message was received successfully.',
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-      }
+  const data = await response.json()
 
-      setMessages((prev) => [...prev, assistantMsg])
-    }, 600)
+  const assistantMsg: Message = {
+    id: (Date.now() + 1).toString(),
+    role: 'assistant',
+    content:
+      data.answer ||
+      data.reply ||
+      data.message ||
+      'Tanzai could not generate a response right now.',
+    timestamp: new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
   }
+
+  setMessages((prev) => [...prev, assistantMsg])
+} catch {
+  const assistantMsg: Message = {
+    id: (Date.now() + 1).toString(),
+    role: 'assistant',
+    content: 'Unable to connect to Tanzai engine. Please try again.',
+    timestamp: new Date().toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+  }
+
+  setMessages((prev) => [...prev, assistantMsg])
+} finally {
+  setIsThinking(false)
+}
 
   const handleStop = () => {
     setIsStreaming(false)
