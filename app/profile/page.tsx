@@ -88,7 +88,9 @@ export default function ProfilePage() {
                 className="flex items-center gap-1.5 text-sm text-primary border border-primary/30 px-3 py-2 rounded-xl hover:bg-accent transition-all"
               >
                 Upgrade
-              </Link>
+              </Link><div className="border border-red-500/30 px-3 py-2 rounded-xl">
+  <LogoutButton />
+</div>
             </div>
           </div>
         </motion.div>
