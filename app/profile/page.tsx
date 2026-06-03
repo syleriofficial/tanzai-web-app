@@ -7,6 +7,7 @@ import {
   FileText, Zap, Edit3, Settings, ExternalLink
 } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
+import { LogoutButton } from '@/components/logout-button'
 
 const stats = [
   { label: 'Conversations', value: '284', icon: MessageSquare },
