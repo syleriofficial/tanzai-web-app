@@ -35,6 +35,19 @@ const memories = [
 ]
 
 export default function ProfilePage() {
+  const [user, setUser] = useState<any>(null)
+
+useEffect(() => {
+  const getUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    setUser(user)
+  }
+
+  getUser()
+}, [])
   return (
     <div className="min-h-screen bg-background">
       {/* Top nav */}
