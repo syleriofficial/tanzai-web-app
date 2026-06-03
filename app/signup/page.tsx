@@ -2,33 +2,91 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
-
-const perks = [
-  'Unlimited AI conversations',
-  'File upload & analysis',
-  'Code assistance in 40+ languages',
-  'Memory & context recall',
-]
+import { supabase } from '@/lib/supabase'
 
 export default function SignupPage() {
+  const router = useRouter()
+
   const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleGoogleSignup = async () => {
+    setError('')
+    setGoogleLoading(true)
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://tanzaiai.com/chat',
+      },
+    })
+
+    if (error) {
+      setError(error.message)
+      setGoogleLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     setLoading(true)
-    setTimeout(() => setLoading(false), 1500)
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    })
+
+    setLoading(false)
+
+    if (error) {
+      setError(error.message)
+      return
+    }
+
+    router.push('/chat')
   }
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left panel — form */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
+        <div className="absolute inset-0" aria-hidden="true">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-blue-600/5 blur-[80px]" />
+        </div>
+
+        <div className="relative z-10 p-12 max-w-md">
+          <Link href="/" aria-label="Back to home">
+            <TanzaiLogo size={32} textSize="text-2xl" className="mb-12" />
+          </Link>
+
+          <div className="glass rounded-2xl border border-border/50 p-5 space-y-3">
+            <div className="flex gap-2.5 items-start">
+              <div className="w-6 h-6 rounded-full bg-accent border border-primary/20 flex items-center justify-center flex-shrink-0">
+                <Sparkles size={10} className="text-primary" />
+              </div>
+              <p className="text-sm text-foreground leading-relaxed">
+                Create your Tanzai account and start building your AI workspace.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -36,16 +94,40 @@ export default function SignupPage() {
           transition={{ duration: 0.4 }}
           className="w-full max-w-sm"
         >
-          <Link href="/" className="flex justify-start mb-8" aria-label="Back to home">
+          <Link href="/" className="lg:hidden flex justify-center mb-8" aria-label="Back to home">
             <TanzaiLogo />
           </Link>
 
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-1.5">Create your account</h1>
             <p className="text-sm text-muted-foreground">
-              Start for free. No credit card required.
+              Start using Tanzai with your free account.
             </p>
           </div>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignup}
+            disabled={googleLoading}
+            className="w-full flex items-center justify-center gap-2 bg-card border border-border text-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-accent transition-all disabled:opacity-60 disabled:cursor-not-allowed mb-4"
+          >
+            {googleLoading ? 'Connecting...' : 'Continue with Google'}
+          </button>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">or continue with email</span>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
@@ -59,7 +141,7 @@ export default function SignupPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Alex Johnson"
+                placeholder="Your name"
                 className="w-full bg-input border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               />
             </div>
@@ -84,6 +166,7 @@ export default function SignupPage() {
               <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">
                 Password
               </label>
+
               <div className="relative">
                 <input
                   id="password"
@@ -92,9 +175,10 @@ export default function SignupPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="8+ characters"
+                  placeholder="Create a strong password"
                   className="w-full bg-input border border-border rounded-xl px-4 py-2.5 pr-11 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                 />
+
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -104,26 +188,12 @@ export default function SignupPage() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {password.length > 0 && (
-                <div className="mt-2 flex gap-1">
-                  {[...Array(4)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                        password.length >= [4, 8, 12, 16][i]
-                          ? i < 2 ? 'bg-yellow-500' : 'bg-primary'
-                          : 'bg-border'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="group w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+              className="group w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -132,7 +202,7 @@ export default function SignupPage() {
                 </>
               ) : (
                 <>
-                  Create free account
+                  Create account
                   <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
                 </>
               )}
@@ -145,66 +215,7 @@ export default function SignupPage() {
               Sign in
             </Link>
           </p>
-
-          <p className="mt-8 text-center text-xs text-muted-foreground/60">
-            By creating an account, you agree to our{' '}
-            <Link href="#" className="hover:text-muted-foreground">Terms of Service</Link>{' '}
-            and{' '}
-            <Link href="#" className="hover:text-muted-foreground">Privacy Policy</Link>.
-          </p>
         </motion.div>
-      </div>
-
-      {/* Right panel — perks */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
-        <div className="absolute inset-0" aria-hidden="true">
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[100px]" />
-          <div className="absolute bottom-1/4 left-1/4 w-[300px] h-[300px] rounded-full bg-blue-600/5 blur-[80px]" />
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: `linear-gradient(oklch(0.72 0.18 210 / 0.8) 1px, transparent 1px), linear-gradient(90deg, oklch(0.72 0.18 210 / 0.8) 1px, transparent 1px)`,
-              backgroundSize: '64px 64px',
-            }}
-          />
-        </div>
-        <div className="relative z-10 p-12 max-w-md">
-          <h2 className="text-3xl font-bold text-foreground mb-3 text-balance">
-            Join 50,000+ thinkers using Tanzai
-          </h2>
-          <p className="text-muted-foreground mb-10 leading-relaxed">
-            Get instant access to the most capable AI assistant, built for real work.
-          </p>
-
-          <ul className="space-y-4 mb-12">
-            {perks.map((perk) => (
-              <li key={perk} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center flex-shrink-0">
-                  <Check size={10} className="text-primary" />
-                </div>
-                <span className="text-sm text-foreground">{perk}</span>
-              </li>
-            ))}
-          </ul>
-
-          {/* Avatar stack */}
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-2.5">
-              {['M', 'S', 'A', 'K', 'R'].map((letter, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full bg-accent border-2 border-background flex items-center justify-center text-xs font-semibold text-primary"
-                  style={{ zIndex: 5 - i }}
-                >
-                  {letter}
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-foreground font-medium">2,400+</span> new accounts this week
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )
