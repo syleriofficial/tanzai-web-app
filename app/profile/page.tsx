@@ -83,7 +83,7 @@ useEffect(() => {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold text-foreground">Alex Johnson</h1>
+                <h1 className="text-xl font-bold text-foreground">{user?.email?.split('@')[0] || 'User'}</h1>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground">
                   Free plan
                 </span>
