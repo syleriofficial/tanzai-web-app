@@ -88,7 +88,7 @@ useEffect(() => {
                   Free plan
                 </span>
               </div>
-              <p className="text-sm text-muted-foreground mt-1">alex@example.com</p>
+              <p className="text-sm text-muted-foreground mt-1">{user?.email || 'No email found'}</p>
               <p className="text-sm text-foreground mt-2">Researcher, builder, and curious mind.</p>
               <p className="text-xs text-muted-foreground mt-1">Member since May 2024 · San Francisco, US</p>
             </div>
