@@ -90,7 +90,7 @@ useEffect(() => {
               </div>
               <p className="text-sm text-muted-foreground mt-1">{user?.email || 'No email found'}</p>
               <p className="text-sm text-foreground mt-2">Tanzai Member</p>
-              <p className="text-xs text-muted-foreground mt-1">Member since May 2024 · San Francisco, US</p>
+              <p className="text-xs text-muted-foreground mt-1">Member since account creation</p>
             </div>
             <div className="flex gap-2 flex-shrink-0 flex-wrap">
               <Link
