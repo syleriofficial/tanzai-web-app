@@ -89,6 +89,7 @@ export default function ProfilePage() {
               >
                 Upgrade
               </Link>
+              
               <div className="border border-red-500/30 px-3 py-2 rounded-xl">
   <LogoutButton />
 </div>
