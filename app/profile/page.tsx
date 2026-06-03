@@ -76,7 +76,7 @@ export default function ProfilePage() {
               <p className="text-sm text-foreground mt-2">Researcher, builder, and curious mind.</p>
               <p className="text-xs text-muted-foreground mt-1">Member since May 2024 · San Francisco, US</p>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 flex-shrink-0 flex-wrap">
               <Link
                 href="/settings"
                 className="flex items-center gap-1.5 text-sm text-muted-foreground border border-border px-3 py-2 rounded-xl hover:text-foreground hover:border-border/80 transition-all"
