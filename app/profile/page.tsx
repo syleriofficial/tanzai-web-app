@@ -35,6 +35,7 @@ const memories = [
 ]
 
 export default function ProfilePage() {
+  
   const [user, setUser] = useState<any>(null)
 
 useEffect(() => {
