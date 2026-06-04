@@ -12,56 +12,82 @@ export async function POST(req: Request) {
     const body = await req.json()
 
     const message = body?.message
-    const messages = body?.messages || []
+    const messages: ChatMessage[] = Array.isArray(body?.messages)
+      ? body.messages
+      : []
 
-    if (!message || typeof message !== 'string') {
+    const userMessage =
+      typeof message === 'string'
+        ? message.trim()
+        : messages[messages.length - 1]?.content?.trim()
+
+    if (!userMessage) {
       return NextResponse.json(
-        { error: 'Message is required' },
+        { answer: 'Message is required.' },
         { status: 400 }
       )
     }
 
-    const engineUrl = process.env.SYLERI_ENGINE_URL
+    const engineUrl =
+      process.env.SYLERI_ENGINE_URL || 'https://engine.syleri.com'
 
-    if (!engineUrl) {
-      return NextResponse.json({
-        answer:
-          'Tanzai engine is not configured yet. Please add SYLERI_ENGINE_URL in Cloud Run environment variables.',
-      })
+    const syleriKey = process.env.SYLERI_API_KEY
+
+    if (!syleriKey) {
+      return NextResponse.json(
+        {
+          answer:
+            'Tanzai engine key is not configured. Please add SYLERI_API_KEY in environment variables.',
+        },
+        { status: 500 }
+      )
     }
 
-    const response = await fetch(`${engineUrl}/api/chat`, {
+    const finalMessages: ChatMessage[] =
+      messages.length > 0
+        ? messages
+        : [
+            {
+              role: 'user',
+              content: userMessage,
+            },
+          ]
+
+    const response = await fetch(`${engineUrl}/v1/chat/complete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(process.env.SYLERI_API_KEY
-          ? { Authorization: `Bearer ${process.env.SYLERI_API_KEY}` }
-          : {}),
+        'x-syleri-key': syleriKey,
       },
       body: JSON.stringify({
-        message,
-        messages: messages as ChatMessage[],
-        app: 'tanzai',
+        messages: finalMessages,
+        profile: 'balanced',
       }),
+      cache: 'no-store',
     })
 
-    if (!response.ok) {
-      return NextResponse.json({
-        answer: 'Tanzai engine is temporarily unavailable. Please try again.',
-      })
-    }
+    const data = await response.json().catch(() => null)
 
-    const data = await response.json()
+    if (!response.ok) {
+      return NextResponse.json(
+        {
+          answer:
+            data?.error ||
+            'Tanzai engine is temporarily unavailable. Please try again.',
+        },
+        { status: 200 }
+      )
+    }
 
     return NextResponse.json({
       answer:
-        data.answer ||
-        data.reply ||
-        data.message ||
-        data.content ||
+        data?.answer ||
+        data?.content ||
+        data?.message ||
         'Tanzai could not generate a response right now.',
+      success: true,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       {
         answer: 'Something went wrong while connecting to Tanzai engine.',
