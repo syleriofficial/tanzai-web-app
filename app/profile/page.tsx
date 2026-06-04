@@ -51,11 +51,11 @@ export default function ProfilePage() {
   const avatarLetter = displayName.charAt(0).toUpperCase()
 
   const stats = [
-    { label: 'Conversations', value: '0', icon: MessageSquare },
-    { label: 'Messages sent', value: '0', icon: Zap },
-    { label: 'Files analyzed', value: '0', icon: FileText },
-    { label: 'Days active', value: '1', icon: Calendar },
-  ]
+  { label: 'Conversations', value: '—', icon: MessageSquare },
+  { label: 'Messages sent', value: '—', icon: Zap },
+  { label: 'Files analyzed', value: '—', icon: FileText },
+  { label: 'Days active', value: '—', icon: Calendar },
+]
 
   return (
     <div className="min-h-screen bg-background">
