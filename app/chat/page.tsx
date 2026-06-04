@@ -23,13 +23,19 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    let mounted = true
+
     const checkSession = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
       const {
         data: { session },
       } = await supabase.auth.getSession()
 
+      if (!mounted) return
+
       if (!session) {
-        router.push('/login')
+        router.replace('/login')
         return
       }
 
@@ -41,12 +47,18 @@ export default function ChatPage() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        router.push('/login')
+      if (!mounted) return
+
+      if (session) {
+        setAuthChecked(true)
+      } else {
+        setAuthChecked(false)
+        router.replace('/login')
       }
     })
 
     return () => {
+      mounted = false
       subscription.unsubscribe()
     }
   }, [router])
@@ -129,7 +141,7 @@ export default function ChatPage() {
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading Tanzai...</div>
+        <div className="text-sm text-muted-foreground">Checking login...</div>
       </div>
     )
   }
