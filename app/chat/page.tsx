@@ -35,52 +35,53 @@ export default function ChatPage() {
     setIsThinking(true)
 
     try {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      message: text,
-      messages: [...messages, userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    }),
-  })
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: text,
+          messages: [...messages, userMsg].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      })
 
-  const data = await response.json()
+      const data = await response.json()
 
-  const assistantMsg: Message = {
-    id: (Date.now() + 1).toString(),
-    role: 'assistant',
-    content:
-      data.answer ||
-      data.reply ||
-      data.message ||
-      'Tanzai could not generate a response right now.',
-    timestamp: new Date().toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
+      const assistantMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content:
+          data.answer ||
+          data.reply ||
+          data.message ||
+          'Tanzai could not generate a response right now.',
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      }
+
+      setMessages((prev) => [...prev, assistantMsg])
+    } catch {
+      const assistantMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Unable to connect to Tanzai engine. Please try again.',
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      }
+
+      setMessages((prev) => [...prev, assistantMsg])
+    } finally {
+      setIsThinking(false)
+    }
   }
-
-  setMessages((prev) => [...prev, assistantMsg])
-} catch {
-  const assistantMsg: Message = {
-    id: (Date.now() + 1).toString(),
-    role: 'assistant',
-    content: 'Unable to connect to Tanzai engine. Please try again.',
-    timestamp: new Date().toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
-  }
-
-  setMessages((prev) => [...prev, assistantMsg])
-} finally {
-  setIsThinking(false)
-}
 
   const handleStop = () => {
     setIsStreaming(false)
@@ -135,7 +136,7 @@ export default function ChatPage() {
                   How can Tanzai help you today?
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Start a new conversation. No demo messages are loaded.
+                  Start a new conversation.
                 </p>
               </motion.div>
             )}
