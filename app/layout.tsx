@@ -1,56 +1,71 @@
-import Script from "next/script";
-import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
+import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: "Tanzai – Think Beyond",
+  metadataBase: new URL('https://tanzaiai.com'),
+
+  title: {
+    default: 'Tanzai – Think Beyond',
+    template: '%s | Tanzai',
+  },
+
   description:
-    "Tanzai is a next-generation AI assistant designed for clarity, speed, and deep understanding.",
+    'Tanzai is a next-generation AI assistant designed for chat, research, coding, writing, reasoning, and productivity.',
+
   keywords: [
-    "AI assistant",
-    "chat",
-    "Tanzai",
-    "artificial intelligence",
-    "productivity",
+    'Tanzai',
+    'AI',
+    'AI Assistant',
+    'ChatGPT Alternative',
+    'Artificial Intelligence',
+    'Research',
+    'Coding Assistant',
+    'Writing Assistant',
   ],
-  authors: [{ name: "Tanzai" }],
+
+  authors: [{ name: 'Tanzai' }],
+
+  creator: 'Tanzai',
+
   openGraph: {
-    title: "Tanzai – Think Beyond",
+    title: 'Tanzai – Think Beyond',
     description:
-      "Next-generation AI assistant for clarity, speed, and deep understanding.",
-    type: "website",
+      'Next-generation AI assistant for chat, coding, research, and productivity.',
+    url: 'https://tanzaiai.com',
+    siteName: 'Tanzai',
+    locale: 'en_US',
+    type: 'website',
   },
+
   twitter: {
-    card: "summary_large_image",
-    title: "Tanzai – Think Beyond",
+    card: 'summary_large_image',
+    title: 'Tanzai – Think Beyond',
     description:
-      "Next-generation AI assistant for clarity, speed, and deep understanding.",
+      'Next-generation AI assistant for chat, coding, research, and productivity.',
   },
-};
+
+  robots: {
+    index: true,
+    follow: true,
+  },
+}
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a12",
-  width: "device-width",
+  width: 'device-width',
   initialScale: 1,
+  maximumScale: 1,
   userScalable: false,
-};
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} bg-background`}>
-      <body className="font-sans antialiased">
-        {/* Google Analytics */}
+    <html lang="en">
+      <body>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-0XV20DC2QL"
           strategy="afterInteractive"
@@ -68,5 +83,5 @@ export default function RootLayout({
         {children}
       </body>
     </html>
-  );
+  )
 }
