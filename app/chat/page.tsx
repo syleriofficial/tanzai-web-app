@@ -1,20 +1,55 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu } from 'lucide-react'
 import { ChatSidebar } from '@/components/chat/sidebar'
 import { ChatMessage, ThinkingIndicator, type Message } from '@/components/chat/message'
 import { ChatInputBar } from '@/components/chat/input-bar'
 import { TanzaiLogo } from '@/components/tanzai-logo'
+import { supabase } from '@/lib/supabase'
 
 export default function ChatPage() {
+  const router = useRouter()
+
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [isThinking, setIsThinking] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
+  const [authChecked, setAuthChecked] = useState(false)
+
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        router.push('/login')
+        return
+      }
+
+      setAuthChecked(true)
+    }
+
+    checkSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.push('/login')
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [router])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -88,6 +123,14 @@ export default function ChatPage() {
     setIsThinking(false)
     setMessages((prev) =>
       prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m))
+    )
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">Loading Tanzai...</div>
+      </div>
     )
   }
 
