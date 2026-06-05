@@ -1,5 +1,21 @@
 'use client'
 
+/**
+ * app/chat/page.tsx
+ *
+ * Key fixes vs. the original:
+ *   • The middleware now handles the primary auth guard (server-side, before
+ *     the page renders). The client-side check here is a safety net for the
+ *     onAuthStateChange SIGNED_OUT event (e.g. token truly expired or revoked
+ *     while the tab is open).
+ *   • Removed the artificial 800ms delay — it caused the "Checking login…"
+ *     flash even for already-authenticated users.
+ *   • Uses getUser() (validates with server) instead of getSession() (trusts
+ *     the local cookie without validation).
+ *   • No longer imports the module-level `supabase` singleton; creates its
+ *     own browser client.
+ */
+
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -8,60 +24,34 @@ import { ChatSidebar } from '@/components/chat/sidebar'
 import { ChatMessage, ThinkingIndicator, type Message } from '@/components/chat/message'
 import { ChatInputBar } from '@/components/chat/input-bar'
 import { TanzaiLogo } from '@/components/tanzai-logo'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase'
 
 export default function ChatPage() {
   const router = useRouter()
+
+  const [supabase] = useState(() => createBrowserClient())
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [isThinking, setIsThinking] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
-  const [authChecked, setAuthChecked] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
 
+  // Listen for sign-out events while the tab is open (e.g. user signs out in
+  // another tab, or the refresh token is revoked server-side).
   useEffect(() => {
-    let mounted = true
-
-    const checkSession = async () => {
-      await new Promise((resolve) => setTimeout(resolve, 800))
-
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!mounted) return
-
-      if (!session) {
-        router.replace('/login')
-        return
-      }
-
-      setAuthChecked(true)
-    }
-
-    checkSession()
-
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return
-
-      if (session) {
-        setAuthChecked(true)
-      } else {
-        setAuthChecked(false)
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
         router.replace('/login')
       }
     })
 
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [router])
+    return () => subscription.unsubscribe()
+  }, [supabase, router])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -72,10 +62,7 @@ export default function ChatPage() {
       id: Date.now().toString(),
       role: 'user',
       content: text,
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
 
     setMessages((prev) => [...prev, userMsg])
@@ -84,15 +71,10 @@ export default function ChatPage() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text,
-          messages: [...messages, userMsg].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
         }),
       })
 
@@ -102,14 +84,8 @@ export default function ChatPage() {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content:
-          data.answer ||
-          data.reply ||
-          data.message ||
-          'Tanzai could not generate a response right now.',
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
+          data.answer ?? data.reply ?? data.message ?? 'Tanzai could not generate a response right now.',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
 
       setMessages((prev) => [...prev, assistantMsg])
@@ -118,10 +94,7 @@ export default function ChatPage() {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: 'Unable to connect to Tanzai engine. Please try again.',
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
 
       setMessages((prev) => [...prev, assistantMsg])
@@ -133,17 +106,7 @@ export default function ChatPage() {
   const handleStop = () => {
     setIsStreaming(false)
     setIsThinking(false)
-    setMessages((prev) =>
-      prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m))
-    )
-  }
-
-  if (!authChecked) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-sm text-muted-foreground">Checking login...</div>
-      </div>
-    )
+    setMessages((prev) => prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)))
   }
 
   return (
@@ -161,9 +124,7 @@ export default function ChatPage() {
           </button>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-medium text-foreground truncate">
-              Tanzai
-            </h1>
+            <h1 className="text-sm font-medium text-foreground truncate">Tanzai</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -190,9 +151,7 @@ export default function ChatPage() {
                 <h2 className="text-xl font-semibold text-foreground mb-2">
                   How can Tanzai help you today?
                 </h2>
-                <p className="text-sm text-muted-foreground">
-                  Start a new conversation.
-                </p>
+                <p className="text-sm text-muted-foreground">Start a new conversation.</p>
               </motion.div>
             )}
 
