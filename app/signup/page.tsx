@@ -40,7 +40,7 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://tanzaiai.com/chat',
+        redirectTo: 'https://tanzaiai.com/auth/callback',
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
