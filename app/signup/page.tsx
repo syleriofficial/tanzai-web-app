@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -19,46 +19,54 @@ export default function SignupPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session) {
+        router.replace('/chat')
+      }
+    }
+
+    checkExistingSession()
+  }, [router])
+
   const handleGoogleSignup = async () => {
     setError('')
     setGoogleLoading(true)
 
-    const { data, error } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      full_name: name,
-    },
-    emailRedirectTo: 'https://tanzaiai.com',
-  },
-})
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://tanzaiai.com/chat',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    })
 
-setLoading(false)
-
-if (error) {
-  setError(error.message)
-  return
-}
-
-if (data.session) {
-  router.replace('/chat')
-} else {
-  router.replace('/login')
-}
+    if (error) {
+      setError(error.message)
+      setGoogleLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: name,
         },
+        emailRedirectTo: 'https://tanzaiai.com/chat',
       },
     })
 
@@ -69,15 +77,12 @@ if (data.session) {
       return
     }
 
-    const {
-  data: { session },
-} = await supabase.auth.getSession()
-
-if (session) {
-  router.replace('/chat')
-} else {
-  router.replace('/login')
-}
+    if (data.session) {
+      router.replace('/chat')
+    } else {
+      router.replace('/login')
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
