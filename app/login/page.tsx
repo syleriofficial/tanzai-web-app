@@ -1,45 +1,59 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+/**
+ * app/login/page.tsx
+ *
+ * Key fixes vs. the original:
+ *   • Imports createBrowserClient (SSR-aware) instead of the singleton `supabase`
+ *     exported from the old lib/supabase.ts (which used localStorage).
+ *   • redirectTo is built from window.location.origin so it works in every
+ *     environment (localhost, staging, production) without hard-coding a URL.
+ *   • The middleware already redirects authenticated users to /chat, so the
+ *     useEffect session check is a lightweight client-side guard only — we
+ *     still keep it so the UX is instant.
+ *   • Error param from the callback route is shown to the user.
+ */
+
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const oauthError = searchParams.get('error')
+
+  const [supabase] = useState(() => createBrowserClient())
 
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(oauthError ?? '')
 
+  // Client-side guard: if already logged in, go straight to /chat.
+  // The middleware handles this server-side too, but this prevents a flash.
   useEffect(() => {
-    const checkExistingSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) router.replace('/chat')
+    })
+  }, [supabase, router])
 
-      if (session) {
-        router.replace('/chat')
-      }
-    }
-
-    checkExistingSession()
-  }, [router])
-
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = useCallback(async () => {
     setError('')
     setGoogleLoading(true)
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://tanzaiai.com/auth/callback',
+        // Build the redirectTo from the current origin so this works in every
+        // environment without changing env vars.
+        redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -51,30 +65,33 @@ export default function LoginPage() {
       setError(error.message)
       setGoogleLoading(false)
     }
-  }
+    // On success the browser navigates to Google — no further action needed.
+  }, [supabase])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      setError('')
+      setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    setLoading(false)
+      setLoading(false)
 
-    if (error) {
-      setError(error.message)
-      return
-    }
+      if (error) {
+        setError(error.message)
+        return
+      }
 
-    router.replace('/chat')
-  }
+      // Session is now in cookies. Navigate to /chat.
+      router.replace('/chat')
+    },
+    [supabase, email, password, router]
+  )
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Left panel — decorative, hidden on small screens */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0" aria-hidden="true">
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[100px]" />
@@ -88,7 +105,8 @@ export default function LoginPage() {
 
           <blockquote className="space-y-4">
             <p className="text-xl font-medium text-foreground leading-relaxed text-balance">
-              &ldquo;Tanzai helps you think, write, research, and build faster with one clean AI workspace.&rdquo;
+              &ldquo;Tanzai helps you think, write, research, and build faster with one clean AI
+              workspace.&rdquo;
             </p>
             <footer className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-accent border border-primary/20 flex items-center justify-center text-sm font-semibold text-primary">
@@ -114,6 +132,7 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* Right panel — form */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -138,7 +157,7 @@ export default function LoginPage() {
             disabled={googleLoading}
             className="w-full flex items-center justify-center gap-2 bg-card border border-border text-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-accent transition-all disabled:opacity-60 disabled:cursor-not-allowed mb-4"
           >
-            {googleLoading ? 'Connecting...' : 'Continue with Google'}
+            {googleLoading ? 'Connecting…' : 'Continue with Google'}
           </button>
 
           <div className="relative my-5">
@@ -194,7 +213,6 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   className="w-full bg-input border border-border rounded-xl px-4 py-2.5 pr-11 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -214,7 +232,7 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Signing in...
+                  Signing in…
                 </>
               ) : (
                 <>
