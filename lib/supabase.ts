@@ -84,5 +84,4 @@ export function createMiddlewareClient(request: NextRequest) {
 
   return { supabase, response }
 }
-
 export const supabase = createBrowserClient()
