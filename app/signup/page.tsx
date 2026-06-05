@@ -1,15 +1,32 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+/**
+ * app/signup/page.tsx
+ *
+ * Key fixes vs. the original:
+ *   • Uses createBrowserClient (SSR-aware).
+ *   • emailRedirectTo built from window.location.origin — points to
+ *     /auth/callback so the confirmation link also lands the user in /chat,
+ *     not at the raw Supabase URL.
+ *   • If the project has email confirmation disabled (common in development),
+ *     data.session is present immediately and we redirect to /chat.
+ *   • If email confirmation is required, we show a "check your email" message
+ *     instead of silently bouncing to /login (which confused users).
+ *   • redirectTo for Google OAuth uses window.location.origin.
+ */
+
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase'
 
 export default function SignupPage() {
   const router = useRouter()
+
+  const [supabase] = useState(() => createBrowserClient())
 
   const [showPassword, setShowPassword] = useState(false)
   const [name, setName] = useState('')
@@ -18,29 +35,23 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
+  const [confirmationSent, setConfirmationSent] = useState(false)
 
+  // Client-side guard: already logged in → /chat.
   useEffect(() => {
-    const checkExistingSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) router.replace('/chat')
+    })
+  }, [supabase, router])
 
-      if (session) {
-        router.replace('/chat')
-      }
-    }
-
-    checkExistingSession()
-  }, [router])
-
-  const handleGoogleSignup = async () => {
+  const handleGoogleSignup = useCallback(async () => {
     setError('')
     setGoogleLoading(true)
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://tanzaiai.com/auth/callback',
+        redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -52,40 +63,69 @@ export default function SignupPage() {
       setError(error.message)
       setGoogleLoading(false)
     }
-  }
+  }, [supabase])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault()
+      setError('')
+      setLoading(true)
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: name,
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name },
+          // Points to /auth/callback so the confirmation email also creates
+          // the SSR session correctly, then lands the user in /chat.
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
-        emailRedirectTo: 'https://tanzaiai.com/chat',
-      },
-    })
+      })
 
-    setLoading(false)
+      setLoading(false)
 
-    if (error) {
-      setError(error.message)
-      return
-    }
+      if (error) {
+        setError(error.message)
+        return
+      }
 
-    if (data.session) {
-      router.replace('/chat')
-    } else {
-      router.replace('/login')
-    }
+      if (data.session) {
+        // Email confirmation is disabled — user is logged in immediately.
+        router.replace('/chat')
+      } else {
+        // Email confirmation is required — tell the user to check their inbox.
+        setConfirmationSent(true)
+      }
+    },
+    [supabase, name, email, password, router]
+  )
+
+  if (confirmationSent) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-sm text-center space-y-4"
+        >
+          <TanzaiLogo size={32} className="justify-center mb-6" />
+          <h2 className="text-xl font-bold text-foreground">Check your email</h2>
+          <p className="text-sm text-muted-foreground">
+            We sent a confirmation link to <span className="text-foreground font-medium">{email}</span>.
+            Click it to activate your account and you&apos;ll be taken straight to Tanzai.
+          </p>
+          <Link href="/login" className="text-sm text-primary hover:underline">
+            Back to sign in
+          </Link>
+        </motion.div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Left panel — decorative */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0" aria-hidden="true">
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[100px]" />
@@ -110,6 +150,7 @@ export default function SignupPage() {
         </div>
       </div>
 
+      {/* Right panel — form */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -123,9 +164,7 @@ export default function SignupPage() {
 
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-foreground mb-1.5">Create your account</h1>
-            <p className="text-sm text-muted-foreground">
-              Start using Tanzai with your free account.
-            </p>
+            <p className="text-sm text-muted-foreground">Start using Tanzai with your free account.</p>
           </div>
 
           <button
@@ -134,7 +173,7 @@ export default function SignupPage() {
             disabled={googleLoading}
             className="w-full flex items-center justify-center gap-2 bg-card border border-border text-foreground px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-accent transition-all disabled:opacity-60 disabled:cursor-not-allowed mb-4"
           >
-            {googleLoading ? 'Connecting...' : 'Continue with Google'}
+            {googleLoading ? 'Connecting…' : 'Continue with Google'}
           </button>
 
           <div className="relative my-5">
@@ -189,7 +228,6 @@ export default function SignupPage() {
               <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1.5">
                 Password
               </label>
-
               <div className="relative">
                 <input
                   id="password"
@@ -201,7 +239,6 @@ export default function SignupPage() {
                   placeholder="Create a strong password"
                   className="w-full bg-input border border-border rounded-xl px-4 py-2.5 pr-11 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -221,7 +258,7 @@ export default function SignupPage() {
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Creating account...
+                  Creating account…
                 </>
               ) : (
                 <>
