@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -18,6 +18,20 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session) {
+        router.replace('/chat')
+      }
+    }
+
+    checkExistingSession()
+  }, [router])
+
   const handleGoogleLogin = async () => {
     setError('')
     setGoogleLoading(true)
@@ -25,7 +39,11 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://tanzaiai.com',
+        redirectTo: 'https://tanzaiai.com/chat',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     })
 
@@ -52,7 +70,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/chat')
+    router.replace('/chat')
   }
 
   return (
