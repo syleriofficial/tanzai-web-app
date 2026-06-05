@@ -23,18 +23,29 @@ export default function SignupPage() {
     setError('')
     setGoogleLoading(true)
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: 'https://tanzaiai.com',
-      },
-    })
+    const { data, error } = await supabase.auth.signUp({
+  email,
+  password,
+  options: {
+    data: {
+      full_name: name,
+    },
+    emailRedirectTo: 'https://tanzaiai.com',
+  },
+})
 
-    if (error) {
-      setError(error.message)
-      setGoogleLoading(false)
-    }
-  }
+setLoading(false)
+
+if (error) {
+  setError(error.message)
+  return
+}
+
+if (data.session) {
+  router.replace('/chat')
+} else {
+  router.replace('/login')
+}
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
