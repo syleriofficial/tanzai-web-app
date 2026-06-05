@@ -58,8 +58,15 @@ export default function SignupPage() {
       return
     }
 
-    router.push('/chat')
-  }
+    const {
+  data: { session },
+} = await supabase.auth.getSession()
+
+if (session) {
+  router.replace('/chat')
+} else {
+  router.replace('/login')
+}
 
   return (
     <div className="min-h-screen bg-background flex">
