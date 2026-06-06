@@ -1,20 +1,6 @@
 'use client'
 
-/**
- * app/login/page.tsx
- *
- * Key fixes vs. the original:
- *   • Imports createBrowserClient (SSR-aware) instead of the singleton `supabase`
- *     exported from the old lib/supabase.ts (which used localStorage).
- *   • redirectTo is built from window.location.origin so it works in every
- *     environment (localhost, staging, production) without hard-coding a URL.
- *   • The middleware already redirects authenticated users to /chat, so the
- *     useEffect session check is a lightweight client-side guard only — we
- *     still keep it so the UX is instant.
- *   • Error param from the callback route is shown to the user.
- */
-
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
@@ -22,7 +8,7 @@ import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
 import { createBrowserClient } from '@/lib/supabase'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const oauthError = searchParams.get('error')
@@ -36,8 +22,6 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState(oauthError ?? '')
 
-  // Client-side guard: if already logged in, go straight to /chat.
-  // The middleware handles this server-side too, but this prevents a flash.
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) router.replace('/chat')
@@ -51,8 +35,6 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Build the redirectTo from the current origin so this works in every
-        // environment without changing env vars.
         redirectTo: `${window.location.origin}/auth/callback`,
         queryParams: {
           access_type: 'offline',
@@ -65,7 +47,6 @@ export default function LoginPage() {
       setError(error.message)
       setGoogleLoading(false)
     }
-    // On success the browser navigates to Google — no further action needed.
   }, [supabase])
 
   const handleSubmit = useCallback(
@@ -83,7 +64,6 @@ export default function LoginPage() {
         return
       }
 
-      // Session is now in cookies. Navigate to /chat.
       router.replace('/chat')
     },
     [supabase, email, password, router]
@@ -91,7 +71,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left panel — decorative, hidden on small screens */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0" aria-hidden="true">
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[100px]" />
@@ -132,7 +111,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel — form */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -252,5 +230,29 @@ export default function LoginPage() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+function LoginFallback() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex justify-center">
+          <TanzaiLogo />
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <div className="h-5 w-32 rounded bg-muted animate-pulse mb-3" />
+          <div className="h-4 w-full rounded bg-muted/70 animate-pulse" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginForm />
+    </Suspense>
   )
 }
