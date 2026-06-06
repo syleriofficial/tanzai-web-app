@@ -1,98 +1,126 @@
 import { NextResponse } from 'next/server'
+import { completeWithSyleri } from '@/lib/ai/syleri'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { createServerClient } from '@/lib/supabase'
+import { type ChatApiResponse, type EngineChatMessage } from '@/types/chat'
 
 export const runtime = 'nodejs'
 
-type ChatMessage = {
-  role: 'user' | 'assistant' | 'system'
-  content: string
+const CHAT_RATE_LIMIT = 30
+const CHAT_RATE_WINDOW_MS = 60 * 1000
+
+function json(body: ChatApiResponse, status = 200) {
+  return NextResponse.json(body, { status })
+}
+
+function normalizeMessages(body: unknown): EngineChatMessage[] {
+  if (!body || typeof body !== 'object') return []
+
+  const payload = body as {
+    message?: unknown
+    messages?: unknown
+  }
+
+  if (Array.isArray(payload.messages)) {
+    return payload.messages
+      .filter((message): message is EngineChatMessage => {
+        if (!message || typeof message !== 'object') return false
+
+        const item = message as Partial<EngineChatMessage>
+
+        return (
+          (item.role === 'user' || item.role === 'assistant' || item.role === 'system') &&
+          typeof item.content === 'string' &&
+          item.content.trim().length > 0
+        )
+      })
+      .map((message) => ({
+        role: message.role,
+        content: message.content.trim(),
+      }))
+  }
+
+  if (typeof payload.message === 'string' && payload.message.trim()) {
+    return [
+      {
+        role: 'user',
+        content: payload.message.trim(),
+      },
+    ]
+  }
+
+  return []
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
+    const supabase = await createServerClient()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
 
-    const message = body?.message
-    const messages: ChatMessage[] = Array.isArray(body?.messages)
-      ? body.messages
-      : []
-
-    const userMessage =
-      typeof message === 'string'
-        ? message.trim()
-        : messages[messages.length - 1]?.content?.trim()
-
-    if (!userMessage) {
-      return NextResponse.json(
-        { answer: 'Message is required.' },
-        { status: 400 }
-      )
-    }
-
-    const engineUrl =
-      process.env.SYLERI_ENGINE_URL || 'https://engine.syleri.com'
-
-    const syleriKey = process.env.SYLERI_API_KEY
-
-    if (!syleriKey) {
-      return NextResponse.json(
+    if (userError || !user) {
+      return json(
         {
-          answer:
-            'Tanzai engine key is not configured. Please add SYLERI_API_KEY in environment variables.',
+          answer: 'Please sign in to use Tanzai.',
+          success: false,
+          error: 'unauthorized',
         },
-        { status: 500 }
+        401
       )
     }
 
-    const finalMessages: ChatMessage[] =
-      messages.length > 0
-        ? messages
-        : [
-            {
-              role: 'user',
-              content: userMessage,
-            },
-          ]
+    const rateLimit = checkRateLimit(
+      `chat:${user.id}`,
+      CHAT_RATE_LIMIT,
+      CHAT_RATE_WINDOW_MS
+    )
 
-    const response = await fetch(`${engineUrl}/v1/chat/complete`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-syleri-key': syleriKey,
-      },
-      body: JSON.stringify({
-        messages: finalMessages,
-        profile: 'balanced',
-      }),
-      cache: 'no-store',
-    })
-
-    const data = await response.json().catch(() => null)
-
-    if (!response.ok) {
-      return NextResponse.json(
+    if (!rateLimit.allowed) {
+      return json(
         {
-          answer:
-            data?.error ||
-            'Tanzai engine is temporarily unavailable. Please try again.',
+          answer: 'Too many messages. Please wait a moment and try again.',
+          success: false,
+          error: 'rate_limited',
         },
-        { status: 200 }
+        429
       )
     }
 
-    return NextResponse.json({
-      answer:
-        data?.answer ||
-        data?.content ||
-        data?.message ||
-        'Tanzai could not generate a response right now.',
+    const body = await req.json().catch(() => null)
+    const messages = normalizeMessages(body)
+
+    if (messages.length === 0) {
+      return json(
+        {
+          answer: 'Message is required.',
+          success: false,
+          error: 'missing_message',
+        },
+        400
+      )
+    }
+
+    const answer = await completeWithSyleri(messages)
+
+    return json({
+      answer,
       success: true,
     })
-  } catch {
-    return NextResponse.json(
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Something went wrong while connecting to Syleri Engine.'
+
+    return json(
       {
-        answer: 'Something went wrong while connecting to Tanzai engine.',
+        answer: message,
+        success: false,
+        error: 'engine_error',
       },
-      { status: 200 }
+      502
     )
   }
 }

@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Check,
 } from 'lucide-react'
+import { type User as SupabaseUser } from '@supabase/supabase-js'
 import { TanzaiLogo } from '@/components/tanzai-logo'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -54,7 +55,7 @@ export default function SettingsPage() {
   const [memoryOn, setMemoryOn] = useState(true)
   const [language, setLanguage] = useState('English')
   const [theme, setTheme] = useState('dark')
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
 
   useEffect(() => {
     const getUser = async () => {

@@ -14,12 +14,13 @@ import {
   Settings,
   ExternalLink,
 } from 'lucide-react'
+import { type User as SupabaseUser } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { TanzaiLogo } from '@/components/tanzai-logo'
 import { LogoutButton } from '@/components/logout-button'
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
 
   useEffect(() => {
     const getUser = async () => {

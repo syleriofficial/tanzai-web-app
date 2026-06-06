@@ -14,6 +14,7 @@ import {
   X,
   Brain,
 } from 'lucide-react'
+import { type User as SupabaseUser } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { TanzaiLogo } from '@/components/tanzai-logo'
@@ -35,7 +36,7 @@ export function ChatSidebar({ open, onClose }: SidebarProps) {
   const [search, setSearch] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
   const [memoryEnabled, setMemoryEnabled] = useState(true)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<SupabaseUser | null>(null)
 
   useEffect(() => {
     const getUser = async () => {

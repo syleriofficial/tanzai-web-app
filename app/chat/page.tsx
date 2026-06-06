@@ -25,6 +25,7 @@ import { ChatMessage, ThinkingIndicator, type Message } from '@/components/chat/
 import { ChatInputBar } from '@/components/chat/input-bar'
 import { TanzaiLogo } from '@/components/tanzai-logo'
 import { createBrowserClient } from '@/lib/supabase'
+import { type ChatApiResponse } from '@/types/chat'
 
 export default function ChatPage() {
   const router = useRouter()
@@ -78,13 +79,17 @@ export default function ChatPage() {
         }),
       })
 
-      const data = await response.json()
+      const data = (await response.json()) as ChatApiResponse
+
+      if (response.status === 401) {
+        router.replace('/login')
+        return
+      }
 
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content:
-          data.answer ?? data.reply ?? data.message ?? 'Tanzai could not generate a response right now.',
+        content: data.answer || 'Tanzai could not generate a response right now.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
 
