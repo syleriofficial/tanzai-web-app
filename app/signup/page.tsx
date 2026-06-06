@@ -22,6 +22,7 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
 import { createBrowserClient } from '@/lib/supabase'
+import { getSiteUrl } from '@/lib/site-url'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -51,7 +52,7 @@ export default function SignupPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${getSiteUrl()}/auth/callback`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -78,7 +79,7 @@ export default function SignupPage() {
           data: { full_name: name },
           // Points to /auth/callback so the confirmation email also creates
           // the SSR session correctly, then lands the user in /chat.
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${getSiteUrl()}/auth/callback`,
         },
       })
 

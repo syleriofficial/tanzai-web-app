@@ -7,6 +7,7 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
 import { createBrowserClient } from '@/lib/supabase'
+import { getSiteUrl } from '@/lib/site-url'
 
 function LoginForm() {
   const router = useRouter()
@@ -35,7 +36,7 @@ function LoginForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${getSiteUrl()}/auth/callback`,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',

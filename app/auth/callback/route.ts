@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const error = requestUrl.searchParams.get('error')
   const errorDescription = requestUrl.searchParams.get('error_description')
 
-  const origin = requestUrl.origin
+  const origin = (process.env.SITE_URL || requestUrl.origin).replace(/\/$/, '')
 
   // OAuth provider returned an error (e.g. user denied consent).
   if (error) {
