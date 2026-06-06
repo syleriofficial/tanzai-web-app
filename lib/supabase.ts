@@ -17,25 +17,17 @@
 import { createBrowserClient as _createBrowserClient } from '@supabase/ssr'
 import { createServerClient as _createServerClient } from '@supabase/ssr'
 import { type CookieOptions } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import { type NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, type NextResponse as NextResponseType } from 'next/server'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-// ─── 1. Browser client ────────────────────────────────────────────────────────
-// Safe to call at module scope in 'use client' files.
-// @supabase/ssr keeps the session in cookies (not localStorage) so it is
-// readable server-side on the next request.
 export function createBrowserClient() {
   return _createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
-// ─── 2. Server client ─────────────────────────────────────────────────────────
-// Must be called inside an async Server Component, Route Handler, or Server
-// Action — NOT at module scope — because it reads the request cookies via
-// next/headers which is only available during a request.
 export async function createServerClient() {
+  const { cookies } = await import('next/headers')
   const cookieStore = await cookies()
 
   return _createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -49,20 +41,16 @@ export async function createServerClient() {
             cookieStore.set(name, value, options)
           )
         } catch {
-          // setAll is called from a Server Component where cookies cannot be
-          // mutated. The middleware will refresh the session so this is safe
-          // to ignore.
+          // Middleware refreshes the session when Server Components cannot mutate cookies.
         }
       },
     },
   })
 }
 
-// ─── 3. Middleware client ─────────────────────────────────────────────────────
-// Returns both the Supabase client and the (possibly mutated) NextResponse so
-// the middleware can forward refreshed cookies to the browser.
-export function createMiddlewareClient(request: NextRequest) {
-  // Start with a pass-through response; we may set cookies on it below.
+export async function createMiddlewareClient(request: NextRequest) {
+  const { NextResponse } = await import('next/server')
+
   let response = NextResponse.next({ request })
 
   const supabase = _createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -71,9 +59,7 @@ export function createMiddlewareClient(request: NextRequest) {
         return request.cookies.getAll()
       },
       setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-        // First write the cookies back onto the request (for this request).
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-        // Then rebuild the response so the updated cookies reach the browser.
         response = NextResponse.next({ request })
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options)
@@ -82,6 +68,7 @@ export function createMiddlewareClient(request: NextRequest) {
     },
   })
 
-  return { supabase, response }
+  return { supabase, response: response as NextResponseType }
 }
+
 export const supabase = createBrowserClient()
