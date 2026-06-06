@@ -20,7 +20,9 @@ import { type CookieOptions } from '@supabase/ssr'
 import { type NextRequest, type NextResponse as NextResponseType } from 'next/server'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export function createBrowserClient() {
   return _createBrowserClient(supabaseUrl, supabaseAnonKey)
