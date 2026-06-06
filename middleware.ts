@@ -21,8 +21,18 @@ const PROTECTED_PREFIXES = ['/chat', '/profile', '/settings', '/admin']
 // Routes that logged-in users should not see.
 const AUTH_ROUTES = ['/login', '/signup']
 
+function redirectWithSupabaseCookies(url: URL, response: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url)
+
+  response.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie)
+  })
+
+  return redirectResponse
+}
+
 export async function middleware(request: NextRequest) {
-  const { supabase, response } = createMiddlewareClient(request)
+  const { supabase, response } = await createMiddlewareClient(request)
 
   // IMPORTANT: always call getUser() (not getSession()) in middleware.
   // getSession() reads the JWT from the cookie without validating it with the
@@ -39,7 +49,7 @@ export async function middleware(request: NextRequest) {
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
-    return NextResponse.redirect(loginUrl)
+    return redirectWithSupabaseCookies(loginUrl, response)
   }
 
   // Redirect authenticated users away from auth pages.
@@ -47,7 +57,7 @@ export async function middleware(request: NextRequest) {
   if (isAuthRoute && user) {
     const chatUrl = request.nextUrl.clone()
     chatUrl.pathname = '/chat'
-    return NextResponse.redirect(chatUrl)
+    return redirectWithSupabaseCookies(chatUrl, response)
   }
 
   // Return the response with (potentially refreshed) cookies attached.
