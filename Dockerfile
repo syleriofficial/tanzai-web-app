@@ -8,7 +8,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_PUBLIC_SITE_URL=https://tanzaiai.com
+ENV NEXT_PUBLIC_SITE_URL=https://tanzai-web-647343293925.asia-south1.run.app
 ENV NEXT_PUBLIC_SUPABASE_URL=https://fzopbexdrfzxyhetmsrt.supabase.co
 ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_e88m2FmDuPmg0BiSNOjWQQ_DkZGilNq
 
@@ -22,8 +22,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=8080
-ENV SITE_URL=https://tanzaiai.com
-ENV NEXT_PUBLIC_SITE_URL=https://tanzaiai.com
+ENV SITE_URL=https://tanzai-web-647343293925.asia-south1.run.app
+ENV NEXT_PUBLIC_SITE_URL=https://tanzai-web-647343293925.asia-south1.run.app
 ENV NEXT_PUBLIC_SUPABASE_URL=https://fzopbexdrfzxyhetmsrt.supabase.co
 ENV NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_e88m2FmDuPmg0BiSNOjWQQ_DkZGilNq
 
