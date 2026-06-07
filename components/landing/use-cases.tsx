@@ -10,49 +10,49 @@ const useCases = [
     id: 'students',
     icon: GraduationCap,
     label: 'Students',
-    headline: 'Ace every subject with AI clarity',
-    description: 'Understand complex topics, get step-by-step explanations, summarize textbooks, and generate practice questions. Tanzai makes learning faster and deeper.',
-    points: ['Explain concepts simply', 'Generate practice problems', 'Summarize research papers', 'Essay drafting & editing'],
+    headline: 'Turn difficult topics into clear study notes',
+    description: 'Ask follow-up questions, simplify concepts, and shape rough notes into study-ready explanations.',
+    points: ['Explain concepts simply', 'Generate practice questions', 'Create study outlines', 'Improve drafts'],
   },
   {
     id: 'professionals',
     icon: Briefcase,
     label: 'Professionals',
-    headline: 'Work at the speed of thought',
-    description: 'Draft reports, analyze data, prepare presentations, and communicate with clarity. Tanzai handles the cognitive load so you can focus on decisions.',
-    points: ['Meeting summaries', 'Report generation', 'Email drafting', 'Strategic analysis'],
+    headline: 'Move from raw thinking to polished output',
+    description: 'Use Tanzai to structure ideas, draft communication, and prepare sharper decisions.',
+    points: ['Briefing notes', 'Report outlines', 'Email drafting', 'Decision framing'],
   },
   {
     id: 'developers',
     icon: Code2,
     label: 'Developers',
-    headline: 'Ship code faster with an AI pair',
-    description: 'Debug errors, understand codebases, generate boilerplate, and get architectural guidance. Tanzai speaks your programming language.',
-    points: ['Code review & debugging', 'Documentation generation', 'Architecture guidance', 'Test case creation'],
+    headline: 'Reason through code with a calmer partner',
+    description: 'Ask for explanations, review snippets, draft functions, and compare implementation tradeoffs.',
+    points: ['Debugging help', 'Code explanation', 'Architecture notes', 'Test ideas'],
   },
   {
     id: 'creators',
     icon: PenTool,
     label: 'Creators',
-    headline: 'From blank page to brilliant work',
-    description: 'Brainstorm ideas, develop storylines, refine tone and voice, and build creative projects with an AI collaborator that understands nuance.',
-    points: ['Brainstorming sessions', 'Tone & style refinement', 'SEO content creation', 'Script & copy writing'],
+    headline: 'Get unstuck without losing your voice',
+    description: 'Brainstorm, outline, rewrite, and refine creative work while keeping direction in your hands.',
+    points: ['Brainstorming', 'Tone refinement', 'Content outlines', 'Copy editing'],
   },
   {
     id: 'researchers',
     icon: FlaskConical,
     label: 'Researchers',
-    headline: 'Accelerate discovery and synthesis',
-    description: 'Analyze literature, extract insights from datasets, generate hypotheses, and communicate findings. Tanzai keeps pace with your thinking.',
-    points: ['Literature synthesis', 'Data interpretation', 'Hypothesis generation', 'Academic writing'],
+    headline: 'Organize questions before the deep work',
+    description: 'Use Tanzai to clarify assumptions, outline research paths, and turn scattered notes into next steps.',
+    points: ['Research outlines', 'Question mapping', 'Summary drafting', 'Argument structure'],
   },
   {
     id: 'enterprise',
     icon: Building2,
     label: 'Enterprise',
-    headline: 'Intelligence at organizational scale',
-    description: 'Deploy Tanzai across teams with admin controls, usage insights, and enterprise-grade security. Bring AI fluency to your entire organization.',
-    points: ['Team workspaces', 'Admin dashboard', 'Usage analytics', 'Enterprise security'],
+    headline: 'Prepare team workflows for AI',
+    description: 'Team plans are being shaped around shared billing, usage visibility, and controlled rollout.',
+    points: ['Shared workflows planned', 'Admin controls planned', 'Usage analytics planned', 'Secure deployment path'],
   },
 ]
 
@@ -107,7 +107,7 @@ export function UseCasesSection() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.25 }}
-            className="glass rounded-2xl border border-border/50 p-8 md:p-12 grid md:grid-cols-2 gap-8 items-center"
+            className="bg-card rounded-2xl border border-border p-8 md:p-12 grid md:grid-cols-2 gap-8 items-center"
           >
             <div>
               <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-4 text-balance">
@@ -126,20 +126,19 @@ export function UseCasesSection() {
               </ul>
             </div>
             <div className="hidden md:block">
-              {/* Decorative mock panel */}
-              <div className="rounded-xl border border-border/50 bg-secondary/40 p-6 space-y-3">
-                <div className="h-3 bg-muted rounded-full w-3/4 shimmer" />
-                <div className="h-3 bg-muted rounded-full w-full shimmer" style={{ animationDelay: '0.1s' }} />
-                <div className="h-3 bg-muted rounded-full w-5/6 shimmer" style={{ animationDelay: '0.2s' }} />
-                <div className="mt-4 h-20 bg-accent/40 rounded-lg border border-primary/15 flex items-center justify-center">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-primary/60 thinking-dot" />
-                    <div className="w-2 h-2 rounded-full bg-primary/60 thinking-dot" />
-                    <div className="w-2 h-2 rounded-full bg-primary/60 thinking-dot" />
-                  </div>
+              <div className="rounded-xl border border-border bg-background/60 p-5 space-y-3">
+                <div className="rounded-lg border border-border bg-card px-4 py-3">
+                  <p className="text-xs text-muted-foreground">Prompt</p>
+                  <p className="mt-1 text-sm text-foreground">Create a focused plan for this workflow.</p>
                 </div>
-                <div className="h-3 bg-muted rounded-full w-2/3 shimmer" style={{ animationDelay: '0.3s' }} />
-                <div className="h-3 bg-muted rounded-full w-full shimmer" style={{ animationDelay: '0.4s' }} />
+                <div className="rounded-lg border border-primary/20 bg-accent/35 px-4 py-3">
+                  <p className="text-xs text-primary">Tanzai output</p>
+                  <ul className="mt-2 space-y-2">
+                    {activeCase.points.slice(0, 3).map((point) => (
+                      <li key={point} className="text-sm text-foreground">{point}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
           </motion.div>

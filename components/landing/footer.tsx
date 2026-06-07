@@ -5,26 +5,21 @@ const footerLinks = {
   Product: [
     { label: 'Features', href: '#features' },
     { label: 'Pricing', href: '/pricing' },
-    { label: 'Changelog', href: '#' },
-    { label: 'Roadmap', href: '#' },
+    { label: 'Chat', href: '/chat' },
+    { label: 'Sign in', href: '/login' },
   ],
   Company: [
-    { label: 'About', href: '#' },
-    { label: 'Blog', href: '#' },
-    { label: 'Careers', href: '#' },
-    { label: 'Press', href: '#' },
+    { label: 'About', href: 'mailto:syleri.official@gmail.com' },
+    { label: 'Contact', href: 'mailto:syleri.official@gmail.com' },
   ],
   Support: [
-    { label: 'Documentation', href: '#' },
-    { label: 'Status', href: '#' },
-    { label: 'Contact', href: '#' },
-    { label: 'Community', href: '#' },
+    { label: 'Help', href: 'mailto:syleri.official@gmail.com' },
+    { label: 'Status', href: '/api/health' },
   ],
   Legal: [
-    { label: 'Privacy Policy', href: '#' },
-    { label: 'Terms of Service', href: '#' },
-    { label: 'Cookie Policy', href: '#' },
-    { label: 'Security', href: '#' },
+    { label: 'Privacy', href: 'mailto:syleri.official@gmail.com' },
+    { label: 'Terms', href: 'mailto:syleri.official@gmail.com' },
+    { label: 'Security', href: 'mailto:syleri.official@gmail.com' },
   ],
 }
 
@@ -37,7 +32,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <TanzaiLogo className="mb-4" />
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              Next-generation AI intelligence for individuals and teams who think bigger.
+              A focused AI workspace for research, writing, coding, and clear decisions.
             </p>
           </div>
 

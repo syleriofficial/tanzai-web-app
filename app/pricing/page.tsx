@@ -25,7 +25,7 @@ const plans = [
     id: 'pro',
     monthlyPrice: 18,
     yearlyPrice: 14,
-    description: 'Unlimited AI for individuals who take their work seriously.',
+    description: 'Higher-capacity AI for individuals who use Tanzai every day.',
     cta: 'Start 14-day trial',
     href: '/signup?plan=pro',
     highlight: true,
@@ -36,7 +36,7 @@ const plans = [
     id: 'team',
     monthlyPrice: 22,
     yearlyPrice: 17,
-    description: 'Collaborative intelligence for high-performing teams.',
+    description: 'Shared AI billing and team workflows for growing groups.',
     cta: 'Start team trial',
     href: '/signup?plan=team',
     highlight: false,
@@ -59,43 +59,43 @@ const features = [
   {
     category: 'Core',
     rows: [
-      { label: 'Messages per day', free: '50', pro: 'Unlimited', team: 'Unlimited', enterprise: 'Unlimited' },
-      { label: 'Context window', free: '32K tokens', pro: '200K tokens', team: '200K tokens', enterprise: '1M+ tokens' },
-      { label: 'Response speed', free: 'Standard', pro: 'Priority', team: 'Priority', enterprise: 'Dedicated' },
+      { label: 'Messages per day', free: '50', pro: 'Higher limits', team: 'Higher limits', enterprise: 'Custom' },
+      { label: 'Core chat workspace', free: true, pro: true, team: true, enterprise: true },
+      { label: 'Response priority', free: 'Standard', pro: 'Priority', team: 'Priority', enterprise: 'Custom' },
     ],
   },
   {
     category: 'Inputs',
     rows: [
       { label: 'Text & code', free: true, pro: true, team: true, enterprise: true },
-      { label: 'File upload & analysis', free: '5 files/day', pro: 'Unlimited', team: 'Unlimited', enterprise: 'Unlimited' },
-      { label: 'Image understanding', free: false, pro: true, team: true, enterprise: true },
-      { label: 'Voice input', free: false, pro: true, team: true, enterprise: true },
+      { label: 'File upload & analysis', free: 'Planned', pro: 'Planned', team: 'Planned', enterprise: 'Custom' },
+      { label: 'Image understanding', free: false, pro: 'Planned', team: 'Planned', enterprise: 'Custom' },
+      { label: 'Voice input', free: false, pro: 'Planned', team: 'Planned', enterprise: 'Custom' },
     ],
   },
   {
     category: 'Intelligence',
     rows: [
-      { label: 'Memory & context recall', free: false, pro: true, team: true, enterprise: true },
-      { label: 'Multilingual support (90+ languages)', free: true, pro: true, team: true, enterprise: true },
-      { label: 'Advanced reasoning', free: false, pro: true, team: true, enterprise: true },
+      { label: 'Memory & context recall', free: false, pro: 'Planned', team: 'Planned', enterprise: 'Custom' },
+      { label: 'Multilingual support', free: true, pro: true, team: true, enterprise: true },
+      { label: 'Advanced reasoning profiles', free: false, pro: 'Planned', team: 'Planned', enterprise: 'Custom' },
     ],
   },
   {
     category: 'Team & Admin',
     rows: [
-      { label: 'Shared workspaces', free: false, pro: false, team: true, enterprise: true },
-      { label: 'Admin dashboard', free: false, pro: false, team: true, enterprise: true },
-      { label: 'Usage analytics', free: false, pro: false, team: true, enterprise: true },
-      { label: 'SSO / SAML', free: false, pro: false, team: false, enterprise: true },
-      { label: 'Audit logs', free: false, pro: false, team: false, enterprise: true },
+      { label: 'Shared workspaces', free: false, pro: false, team: 'Planned', enterprise: 'Custom' },
+      { label: 'Admin dashboard', free: false, pro: false, team: 'Planned', enterprise: 'Custom' },
+      { label: 'Usage analytics', free: false, pro: false, team: 'Planned', enterprise: 'Custom' },
+      { label: 'SSO / SAML', free: false, pro: false, team: false, enterprise: 'Custom' },
+      { label: 'Audit logs', free: false, pro: false, team: false, enterprise: 'Custom' },
     ],
   },
   {
     category: 'Support',
     rows: [
-      { label: 'Support tier', free: 'Community', pro: 'Email', team: 'Priority email', enterprise: 'Dedicated CSM' },
-      { label: 'SLA guarantee', free: false, pro: false, team: false, enterprise: true },
+      { label: 'Support tier', free: 'Community', pro: 'Email', team: 'Priority email', enterprise: 'Custom' },
+      { label: 'SLA guarantee', free: false, pro: false, team: false, enterprise: 'Custom' },
     ],
   },
 ]
@@ -115,11 +115,11 @@ const faqs = [
   },
   {
     q: 'What payment methods do you accept?',
-    a: 'All major credit cards, PayPal, and bank transfers for enterprise agreements.',
+    a: 'Paid plans use Stripe Checkout. Enterprise agreements can be handled directly.',
   },
   {
     q: 'Is there a free trial for Pro?',
-    a: 'Yes — every new account gets a 14-day Pro trial, no credit card required.',
+    a: 'Free accounts can start immediately. Paid plan trials and discounts are handled through Stripe configuration.',
   },
 ]
 
@@ -388,7 +388,7 @@ export default function PricingPage() {
               Start thinking with Tanzai today
             </h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              No credit card required. Full Pro access for 14 days.
+              Start free, then upgrade when you need more capacity.
             </p>
             <Link
               href="/signup"

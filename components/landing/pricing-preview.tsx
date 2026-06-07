@@ -18,20 +18,20 @@ const plans = [
     name: 'Pro',
     price: '$18',
     period: '/month',
-    description: 'Unlimited access for individuals who demand more.',
-    features: ['Unlimited messages', 'Image & voice input', 'Memory & context recall', 'Priority response speed', 'Advanced file analysis', 'Early feature access'],
-    cta: 'Start Pro trial',
-    href: '/signup?plan=pro',
+    description: 'More room for individuals who use Tanzai every day.',
+    features: ['Higher message limits', 'Priority response capacity', 'Advanced writing and code help', 'Early product features'],
+    cta: 'View Pro',
+    href: '/pricing',
     highlight: true,
   },
   {
     name: 'Team',
-    price: '$14',
+    price: '$22',
     period: '/user/month',
-    description: 'Collaborative AI for fast-moving teams.',
-    features: ['Everything in Pro', 'Shared workspaces', 'Admin dashboard', 'Usage analytics', 'SSO & security controls', 'Priority support'],
-    cta: 'Start team trial',
-    href: '/signup?plan=team',
+    description: 'Shared AI capacity for teams building repeatable workflows.',
+    features: ['Everything in Pro', 'Team-ready billing', 'Admin controls planned', 'Usage visibility planned'],
+    cta: 'View Team',
+    href: '/pricing',
     highlight: false,
   },
 ]
@@ -46,7 +46,7 @@ export function PricingPreviewSection() {
             Simple, honest pricing
           </h2>
           <p className="mt-4 text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            No hidden fees, no usage surprises. Pay once, think forever.
+            Start free, then upgrade when Tanzai becomes part of your daily workflow.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export function PricingPreviewSection() {
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-8">
-          All plans include a 14-day free trial. No credit card required.{' '}
+          Paid checkout is handled securely by Stripe.{' '}
           <Link href="/pricing" className="text-primary hover:underline">
             See full pricing details →
           </Link>

@@ -85,18 +85,19 @@ export function ChatInputBar({
       >
         {/* Toolbar top */}
         <div className="flex items-center gap-1 px-3 pt-2.5 pb-1">
-          <label className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors" title="Upload file">
+          <label className="p-1.5 rounded-lg text-muted-foreground/45 cursor-not-allowed transition-colors" title="File upload is coming soon">
             <Paperclip size={15} />
-            <input type="file" className="sr-only" accept=".pdf,.txt,.doc,.docx,.csv,.json" aria-label="Upload file" />
+            <input type="file" className="sr-only" accept=".pdf,.txt,.doc,.docx,.csv,.json" aria-label="Upload file" disabled />
           </label>
-          <label className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent cursor-pointer transition-colors" title="Upload image">
+          <label className="p-1.5 rounded-lg text-muted-foreground/45 cursor-not-allowed transition-colors" title="Image upload is coming soon">
             <ImageIcon size={15} />
-            <input type="file" className="sr-only" accept="image/*" aria-label="Upload image" />
+            <input type="file" className="sr-only" accept="image/*" aria-label="Upload image" disabled />
           </label>
           <button
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-            title="Voice input"
+            className="p-1.5 rounded-lg text-muted-foreground/45 cursor-not-allowed transition-colors"
+            title="Voice input is coming soon"
             aria-label="Voice input"
+            disabled
           >
             <Mic size={15} />
           </button>

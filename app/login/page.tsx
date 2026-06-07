@@ -176,7 +176,7 @@ function LoginForm() {
                 <label htmlFor="password" className="block text-sm font-medium text-foreground">
                   Password
                 </label>
-                <Link href="#" className="text-xs text-primary hover:underline">
+                <Link href="mailto:syleri.official@gmail.com" className="text-xs text-primary hover:underline">
                   Forgot password?
                 </Link>
               </div>

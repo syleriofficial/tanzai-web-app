@@ -17,57 +17,65 @@ const features = [
     icon: MessageSquare,
     title: 'AI Chat',
     description:
-      'Natural, context-aware conversations that remember your preferences and build on previous exchanges.',
+      'Fast, focused conversations for research, writing, planning, and everyday reasoning.',
     color: 'oklch(0.72 0.18 210)',
+    status: 'Live',
   },
   {
     icon: Code2,
     title: 'Coding Help',
     description:
-      'Write, debug, and explain code in 40+ languages. Pair-program with an AI that understands your codebase.',
+      'Explain errors, draft functions, review snippets, and reason through implementation choices.',
     color: 'oklch(0.68 0.19 180)',
+    status: 'Live',
   },
   {
     icon: FileSearch,
     title: 'File Analysis',
     description:
-      'Upload PDFs, spreadsheets, and documents. Get instant summaries, Q&A, and extracted insights.',
+      'Document upload and retrieval workflows are planned for the next product phase.',
     color: 'oklch(0.65 0.20 240)',
+    status: 'Soon',
   },
   {
     icon: ImageIcon,
     title: 'Image Understanding',
     description:
-      'Describe, analyze, and reason about images. From charts to photographs, Tanzai sees clearly.',
+      'Image reasoning is on the roadmap after the core chat workspace stabilizes.',
     color: 'oklch(0.70 0.17 160)',
+    status: 'Soon',
   },
   {
     icon: Mic,
     title: 'Voice Assistant',
     description:
-      'Speak your questions naturally. Tanzai listens, understands, and responds in clear, spoken language.',
+      'Voice input will arrive after text chat, billing, and saved conversations are solid.',
     color: 'oklch(0.73 0.16 195)',
+    status: 'Soon',
   },
   {
     icon: Brain,
     title: 'Memory',
     description:
-      'Tanzai learns from your sessions. Build a persistent knowledge base that grows smarter with every conversation.',
+      'Saved context and long-term preferences will be introduced with clear user controls.',
     color: 'oklch(0.68 0.21 220)',
+    status: 'Planned',
   },
   {
     icon: Globe2,
     title: 'Multilingual',
     description:
-      'Chat in over 90 languages. Tanzai translates, switches, and reasons across languages without losing context.',
+      'Ask questions and draft responses across languages supported by the engine.',
     color: 'oklch(0.72 0.18 200)',
+    status: 'Live',
   },
   {
     icon: Zap,
     title: 'Productivity',
     description:
-      'Drafts, summaries, plans, and action lists. Turn raw ideas into structured outputs in seconds.',
+      'Turn rough notes into sharper drafts, checklists, summaries, and next steps.',
     color: 'oklch(0.75 0.16 175)',
+    status: 'Live',
   },
 ]
 
@@ -127,21 +135,26 @@ export function FeaturesSection() {
               <motion.div
                 key={feature.title}
                 variants={cardVariants}
-                className="group glass rounded-2xl border border-border/50 p-6 hover:border-primary/30 transition-all duration-300"
+                className="group bg-card rounded-xl border border-border p-6 hover:border-primary/30 transition-all duration-300"
               >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                  style={{
-                    background: `${feature.color}18`,
-                    border: `1px solid ${feature.color}30`,
-                  }}
-                >
-                  <Icon
-                    size={18}
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
                     style={{
-                      color: feature.color,
+                      background: `${feature.color}18`,
+                      border: `1px solid ${feature.color}30`,
                     }}
-                  />
+                  >
+                    <Icon
+                      size={18}
+                      style={{
+                        color: feature.color,
+                      }}
+                    />
+                  </div>
+                  <span className="rounded-full border border-border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {feature.status}
+                  </span>
                 </div>
 
                 <h3 className="font-semibold text-foreground mb-2">
