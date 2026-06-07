@@ -11,14 +11,14 @@ export const metadata: Metadata = {
   },
 
   description:
-    'Tanzai is a next-generation AI assistant designed for chat, research, coding, writing, reasoning, and productivity.',
+    'Tanzai is a focused AI workspace for clear chat, research, writing, coding support, and practical planning.',
 
   keywords: [
     'Tanzai',
     'AI',
     'AI Assistant',
-    'ChatGPT Alternative',
     'Artificial Intelligence',
+    'AI Workspace',
     'Research',
     'Coding Assistant',
     'Writing Assistant',
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Tanzai – Think Beyond',
     description:
-      'Next-generation AI assistant for chat, coding, research, and productivity.',
+      'A focused AI workspace for chat, coding support, research, writing, and practical planning.',
     url: 'https://tanzaiai.com',
     siteName: 'Tanzai',
     locale: 'en_US',
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Tanzai – Think Beyond',
     description:
-      'Next-generation AI assistant for chat, coding, research, and productivity.',
+      'A focused AI workspace for chat, coding support, research, writing, and practical planning.',
   },
 
   robots: {
@@ -54,8 +54,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 }
 
 export default function RootLayout({

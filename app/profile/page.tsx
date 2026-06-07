@@ -202,7 +202,7 @@ export default function ProfilePage() {
             </div>
 
             <Link href="/pricing" className="text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-lg hover:bg-accent transition-colors">
-              Get unlimited
+              Upgrade plan
             </Link>
           </div>
 
