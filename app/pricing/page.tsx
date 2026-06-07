@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 const plans = [
   {
     name: 'Free',
+    id: null,
     monthlyPrice: 0,
     yearlyPrice: 0,
     description: 'Explore Tanzai at no cost. No credit card needed.',
@@ -21,6 +22,7 @@ const plans = [
   },
   {
     name: 'Pro',
+    id: 'pro',
     monthlyPrice: 18,
     yearlyPrice: 14,
     description: 'Unlimited AI for individuals who take their work seriously.',
@@ -31,6 +33,7 @@ const plans = [
   },
   {
     name: 'Team',
+    id: 'team',
     monthlyPrice: 22,
     yearlyPrice: 17,
     description: 'Collaborative intelligence for high-performing teams.',
@@ -41,6 +44,7 @@ const plans = [
   },
   {
     name: 'Enterprise',
+    id: null,
     monthlyPrice: null,
     yearlyPrice: null,
     description: 'Custom deployment with full security and compliance controls.',
@@ -130,6 +134,43 @@ function CellValue({ value }: { value: Cell }) {
 export default function PricingPage() {
   const [yearly, setYearly] = useState(true)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null)
+  const [checkoutError, setCheckoutError] = useState('')
+
+  const startCheckout = async (plan: string) => {
+    setCheckoutError('')
+    setCheckoutPlan(plan)
+
+    try {
+      const response = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan,
+          interval: yearly ? 'yearly' : 'monthly',
+        }),
+      })
+
+      const data = (await response.json()) as { url?: string; error?: string }
+
+      if (response.status === 401) {
+        window.location.href = `/login?next=/pricing`
+        return
+      }
+
+      if (!response.ok || !data.url) {
+        throw new Error(data.error || 'Unable to start checkout.')
+      }
+
+      window.location.href = data.url
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error ? error.message : 'Unable to start checkout.'
+      )
+    } finally {
+      setCheckoutPlan(null)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,6 +223,12 @@ export default function PricingPage() {
           </motion.div>
 
           {/* Plan cards */}
+          {checkoutError && (
+            <div className="max-w-xl mx-auto mb-6 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 text-center">
+              {checkoutError}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-20">
             {plans.map((plan, i) => (
               <motion.div
@@ -226,18 +273,35 @@ export default function PricingPage() {
                   <p className="text-xs text-muted-foreground leading-relaxed">{plan.description}</p>
                 </div>
 
-                <Link
-                  href={plan.href}
-                  className={cn(
-                    'group flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all mt-auto',
-                    plan.highlight
-                      ? 'bg-primary text-primary-foreground hover:opacity-90'
-                      : 'border border-border text-foreground hover:border-primary/40 hover:text-primary'
-                  )}
-                >
-                  {plan.cta}
-                  <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-                </Link>
+                {plan.name === 'Pro' || plan.name === 'Team' ? (
+                  <button
+                    type="button"
+                    onClick={() => startCheckout(plan.name === 'Pro' ? 'pro' : 'team')}
+                    disabled={checkoutPlan === plan.id}
+                    className={cn(
+                      'group flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all mt-auto disabled:opacity-60 disabled:cursor-not-allowed',
+                      plan.highlight
+                        ? 'bg-primary text-primary-foreground hover:opacity-90'
+                        : 'border border-border text-foreground hover:border-primary/40 hover:text-primary'
+                    )}
+                  >
+                    {checkoutPlan === plan.id ? 'Opening checkout...' : plan.cta}
+                    <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                  </button>
+                ) : (
+                  <Link
+                    href={plan.href}
+                    className={cn(
+                      'group flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all mt-auto',
+                      plan.highlight
+                        ? 'bg-primary text-primary-foreground hover:opacity-90'
+                        : 'border border-border text-foreground hover:border-primary/40 hover:text-primary'
+                    )}
+                  >
+                    {plan.cta}
+                    <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                )}
               </motion.div>
             ))}
           </div>
