@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { type User as SupabaseUser } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
-import { supabase } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase'
 import { TanzaiLogo } from '@/components/tanzai-logo'
 import { LogoutButton } from '@/components/logout-button'
 
@@ -30,13 +30,24 @@ interface Chat {
 interface SidebarProps {
   open: boolean
   onClose: () => void
+  conversations: Chat[]
+  activeConversationId: string
+  onNewConversation: () => void
+  onSelectConversation: (id: string) => void
 }
 
-export function ChatSidebar({ open, onClose }: SidebarProps) {
+export function ChatSidebar({
+  open,
+  onClose,
+  conversations,
+  activeConversationId,
+  onNewConversation,
+  onSelectConversation,
+}: SidebarProps) {
   const [search, setSearch] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
-  const [memoryEnabled, setMemoryEnabled] = useState(true)
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [supabase] = useState(() => createBrowserClient())
 
   useEffect(() => {
     const getUser = async () => {
@@ -57,8 +68,6 @@ export function ChatSidebar({ open, onClose }: SidebarProps) {
     'User'
 
   const avatarLetter = displayName.charAt(0).toUpperCase()
-
-  const conversations: Chat[] = []
 
   const filtered = conversations.filter(
     (c) =>
@@ -94,15 +103,10 @@ export function ChatSidebar({ open, onClose }: SidebarProps) {
 
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setMemoryEnabled(!memoryEnabled)}
-              title={memoryEnabled ? 'Memory on' : 'Memory off'}
-              className={cn(
-                'p-1.5 rounded-lg transition-colors',
-                memoryEnabled
-                  ? 'text-primary bg-accent'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-              )}
-              aria-label="Toggle memory"
+              title="Memory is coming soon"
+              className="p-1.5 rounded-lg text-muted-foreground/45 cursor-not-allowed"
+              aria-label="Memory is coming soon"
+              disabled
             >
               <Brain size={15} />
             </button>
@@ -118,7 +122,13 @@ export function ChatSidebar({ open, onClose }: SidebarProps) {
         </div>
 
         <div className="px-3 pt-3 pb-2 flex-shrink-0">
-          <button className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-accent hover:bg-accent/80 text-sidebar-accent-foreground text-sm font-medium transition-colors border border-sidebar-border/50 group">
+          <button
+            onClick={() => {
+              onNewConversation()
+              onClose()
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-accent hover:bg-accent/80 text-sidebar-accent-foreground text-sm font-medium transition-colors border border-sidebar-border/50 group"
+          >
             <Plus size={15} className="text-primary group-hover:rotate-90 transition-transform duration-200" />
             New conversation
           </button>
@@ -143,13 +153,41 @@ export function ChatSidebar({ open, onClose }: SidebarProps) {
             <div className="mt-4 rounded-xl border border-sidebar-border/50 bg-accent/30 px-3 py-4 text-center">
               <MessageSquare size={16} className="mx-auto mb-2 text-primary/70" />
               <p className="text-xs font-medium text-sidebar-foreground">
-                No conversations yet
+                {search ? 'No matching chats' : 'No conversations yet'}
               </p>
               <p className="text-[11px] text-muted-foreground mt-1">
-                Start a new conversation with Tanzai.
+                {search ? 'Try a different search.' : 'Start a new conversation with Tanzai.'}
               </p>
             </div>
-          ) : null}
+          ) : (
+            <div className="space-y-1">
+              {filtered.map((chat) => (
+                <button
+                  key={chat.id}
+                  onClick={() => {
+                    onSelectConversation(chat.id)
+                    onClose()
+                  }}
+                  className={cn(
+                    'w-full rounded-xl px-3 py-2.5 text-left transition-colors',
+                    chat.id === activeConversationId
+                      ? 'bg-accent text-sidebar-accent-foreground'
+                      : 'hover:bg-accent/60 text-sidebar-foreground'
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-xs font-medium">{chat.title}</p>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {chat.date}
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                    {chat.preview}
+                  </p>
+                </button>
+              ))}
+            </div>
+          )}
         </nav>
 
         <div className="border-t border-sidebar-border px-3 py-3 flex-shrink-0 relative">

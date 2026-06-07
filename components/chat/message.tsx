@@ -17,14 +17,49 @@ interface MessageProps {
   message: Message
 }
 
+function MessageContent({ content }: { content: string }) {
+  const parts = content.split(/```([\s\S]*?)```/g)
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (index % 2 === 1) {
+          const [firstLine, ...rest] = part.replace(/^\n/, '').split('\n')
+          const hasLanguage = firstLine && !firstLine.includes(' ') && rest.length > 0
+          const code = hasLanguage ? rest.join('\n') : part.trim()
+
+          return (
+            <pre
+              key={index}
+              className="my-3 max-w-full overflow-x-auto rounded-xl border border-border bg-background/80 p-3 text-xs leading-relaxed text-foreground"
+            >
+              <code>{code}</code>
+            </pre>
+          )
+        }
+
+        return (
+          <span key={index} className="whitespace-pre-wrap">
+            {part}
+          </span>
+        )
+      })}
+    </>
+  )
+}
+
 export function ChatMessage({ message }: MessageProps) {
   const [copied, setCopied] = useState(false)
   const [feedback, setFeedback] = useState<'up' | 'down' | null>(null)
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(message.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setCopied(false)
+    }
   }
 
   const isAssistant = message.role === 'assistant'
@@ -43,7 +78,7 @@ export function ChatMessage({ message }: MessageProps) {
         </div>
       )}
 
-      <div className={cn('flex flex-col gap-1 max-w-[80%]', !isAssistant && 'items-end')}>
+      <div className={cn('flex flex-col gap-1 max-w-[86%] sm:max-w-[80%]', !isAssistant && 'items-end')}>
         {/* Bubble */}
         <div
           className={cn(
@@ -59,7 +94,7 @@ export function ChatMessage({ message }: MessageProps) {
               <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 cursor-blink align-middle" />
             </span>
           ) : (
-            <span className="whitespace-pre-wrap">{message.content}</span>
+            <MessageContent content={message.content} />
           )}
         </div>
 

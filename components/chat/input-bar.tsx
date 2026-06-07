@@ -17,9 +17,9 @@ interface InputBarProps {
 
 const suggestions = [
   'Explain this concept simply',
-  'Write a Python function for...',
-  'Summarize this document',
-  'Debug my code',
+  'Draft a launch plan',
+  'Debug this code',
+  'Rewrite this clearly',
 ]
 
 export function ChatInputBar({
@@ -108,17 +108,20 @@ export function ChatInputBar({
           {/* Memory toggle */}
           <button
             onClick={onToggleMemory}
+            disabled={!onToggleMemory}
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-              memoryEnabled
+              onToggleMemory && memoryEnabled
                 ? 'bg-accent text-primary border border-primary/20'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                : onToggleMemory
+                  ? 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                  : 'text-muted-foreground/45 cursor-not-allowed'
             )}
-            title={memoryEnabled ? 'Memory on' : 'Memory off'}
-            aria-label="Toggle memory"
+            title={onToggleMemory ? (memoryEnabled ? 'Memory on' : 'Memory off') : 'Memory is coming soon'}
+            aria-label={onToggleMemory ? 'Toggle memory' : 'Memory is coming soon'}
           >
             <Brain size={12} />
-            <span className="hidden sm:inline">Memory</span>
+            <span className="hidden sm:inline">{onToggleMemory ? 'Memory' : 'Memory soon'}</span>
           </button>
         </div>
 
@@ -130,8 +133,9 @@ export function ChatInputBar({
           onKeyDown={handleKeyDown}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="Ask Tanzai anything... (Shift+Enter for new line)"
+          placeholder={isStreaming ? 'Tanzai is thinking...' : 'Ask Tanzai anything...'}
           rows={1}
+          disabled={isStreaming}
           className="w-full bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none leading-relaxed min-h-[44px]"
           aria-label="Message input"
         />
