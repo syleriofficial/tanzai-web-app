@@ -8,8 +8,8 @@ import { TanzaiLogo } from '@/components/tanzai-logo'
 import { cn } from '@/lib/utils'
 
 const links = [
-  { label: 'Features', href: '#features' },
-  { label: 'Use Cases', href: '#use-cases' },
+  { label: 'Features', href: '/#features' },
+  { label: 'Use Cases', href: '/#use-cases' },
   { label: 'Pricing', href: '/pricing' },
 ]
 

@@ -26,7 +26,7 @@ const plans = [
     monthlyPrice: 18,
     yearlyPrice: 14,
     description: 'Higher-capacity AI for individuals who use Tanzai every day.',
-    cta: 'Start 14-day trial',
+    cta: 'Upgrade to Pro',
     href: '/signup?plan=pro',
     highlight: true,
     badge: 'Most popular',
@@ -37,7 +37,7 @@ const plans = [
     monthlyPrice: 22,
     yearlyPrice: 17,
     description: 'Shared AI billing and team workflows for growing groups.',
-    cta: 'Start team trial',
+    cta: 'Upgrade to Team',
     href: '/signup?plan=team',
     highlight: false,
     badge: null,
@@ -49,7 +49,7 @@ const plans = [
     yearlyPrice: null,
     description: 'Custom deployment with full security and compliance controls.',
     cta: 'Contact sales',
-    href: '#',
+    href: 'mailto:syleri.official@gmail.com?subject=Tanzai%20Enterprise%20sales',
     highlight: false,
     badge: 'Custom',
   },
@@ -119,7 +119,7 @@ const faqs = [
   },
   {
     q: 'Is there a free trial for Pro?',
-    a: 'Free accounts can start immediately. Paid plan trials and discounts are handled through Stripe configuration.',
+    a: 'Free accounts can start immediately. Paid plan trials or discounts are offered when they are active in Stripe.',
   },
 ]
 

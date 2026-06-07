@@ -32,5 +32,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.6,
     },
+    ...["about", "contact", "help", "privacy", "terms", "security"].map(
+      (path) => ({
+        url: `https://tanzaiai.com/${path}`,
+        lastModified: new Date(),
+        changeFrequency: "monthly" as const,
+        priority: 0.4,
+      })
+    ),
   ];
 }

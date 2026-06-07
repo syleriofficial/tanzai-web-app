@@ -116,8 +116,8 @@ export function FeaturesSection() {
           </h2>
 
           <p className="mt-4 text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Tanzai integrates every modality — text, code, voice, image, and memory —
-            into one seamless experience.
+            Start with reliable text and code chat today, with files, images,
+            voice, and memory rolling out as the workspace matures.
           </p>
         </div>
 

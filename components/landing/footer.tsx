@@ -3,23 +3,23 @@ import { TanzaiLogo } from '@/components/tanzai-logo'
 
 const footerLinks = {
   Product: [
-    { label: 'Features', href: '#features' },
+    { label: 'Features', href: '/#features' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Chat', href: '/chat' },
     { label: 'Sign in', href: '/login' },
   ],
   Company: [
-    { label: 'About', href: 'mailto:syleri.official@gmail.com' },
-    { label: 'Contact', href: 'mailto:syleri.official@gmail.com' },
+    { label: 'About', href: '/about' },
+    { label: 'Contact', href: '/contact' },
   ],
   Support: [
-    { label: 'Help', href: 'mailto:syleri.official@gmail.com' },
+    { label: 'Help', href: '/help' },
     { label: 'Status', href: '/api/health' },
   ],
   Legal: [
-    { label: 'Privacy', href: 'mailto:syleri.official@gmail.com' },
-    { label: 'Terms', href: 'mailto:syleri.official@gmail.com' },
-    { label: 'Security', href: 'mailto:syleri.official@gmail.com' },
+    { label: 'Privacy', href: '/privacy' },
+    { label: 'Terms', href: '/terms' },
+    { label: 'Security', href: '/security' },
   ],
 }
 
