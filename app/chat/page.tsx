@@ -1,31 +1,26 @@
 'use client'
 
-/**
- * app/chat/page.tsx
- *
- * Key fixes vs. the original:
- *   • The middleware now handles the primary auth guard (server-side, before
- *     the page renders). The client-side check here is a safety net for the
- *     onAuthStateChange SIGNED_OUT event (e.g. token truly expired or revoked
- *     while the tab is open).
- *   • Removed the artificial 800ms delay — it caused the "Checking login…"
- *     flash even for already-authenticated users.
- *   • Uses getUser() (validates with server) instead of getSession() (trusts
- *     the local cookie without validation).
- *   • No longer imports the module-level `supabase` singleton; creates its
- *     own browser client.
- */
-
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Menu, Plus, ShieldCheck, Sparkles, Trash2 } from 'lucide-react'
-import { ChatSidebar } from '@/components/chat/sidebar'
-import { ChatMessage, ThinkingIndicator, type Message } from '@/components/chat/message'
+import { type User as SupabaseUser } from '@supabase/supabase-js'
 import { ChatInputBar } from '@/components/chat/input-bar'
+import { ChatMessage, ThinkingIndicator, type Message } from '@/components/chat/message'
+import { ChatSidebar } from '@/components/chat/sidebar'
 import { TanzaiLogo } from '@/components/tanzai-logo'
 import { createBrowserClient } from '@/lib/supabase'
-import { type ChatApiResponse } from '@/types/chat'
+import { type EngineChatMessage } from '@/types/chat'
+
+type ChatHistoryRow = {
+  id: string
+  user_id: string
+  chat_id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  title: string | null
+  created_at: string
+}
 
 type Conversation = {
   id: string
@@ -35,8 +30,6 @@ type Conversation = {
   messages: Message[]
 }
 
-const STORAGE_KEY = 'tanzai.chat.conversations.v1'
-
 const starterPrompts = [
   'Plan my next product launch',
   'Explain this code error clearly',
@@ -44,67 +37,141 @@ const starterPrompts = [
   'Turn these notes into action steps',
 ]
 
-function createConversation(): Conversation {
-  const now = new Date()
-
+function createEmptyConversation(): Conversation {
   return {
     id: crypto.randomUUID(),
     title: 'New conversation',
     preview: 'No messages yet',
-    date: now.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+    date: new Date().toLocaleDateString([], { month: 'short', day: 'numeric' }),
     messages: [],
   }
 }
 
 function titleFromMessage(message: string) {
   const clean = message.replace(/\s+/g, ' ').trim()
-  if (clean.length <= 42) return clean
-  return `${clean.slice(0, 42).trim()}...`
+  if (!clean) return 'New conversation'
+  if (clean.length <= 48) return clean
+  return `${clean.slice(0, 48).trim()}...`
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString([], { month: 'short', day: 'numeric' })
+}
+
+function groupRows(rows: ChatHistoryRow[]): Conversation[] {
+  const grouped = new Map<string, ChatHistoryRow[]>()
+
+  rows.forEach((row) => {
+    grouped.set(row.chat_id, [...(grouped.get(row.chat_id) || []), row])
+  })
+
+  return Array.from(grouped.entries())
+    .map(([chatId, chatRows]) => {
+      const sorted = [...chatRows].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      )
+      const firstUser = sorted.find((row) => row.role === 'user')
+      const last = sorted[sorted.length - 1]
+      const title = sorted.find((row) => row.title)?.title || firstUser?.content || 'New conversation'
+
+      return {
+        id: chatId,
+        createdAt: last?.created_at || '',
+        title: titleFromMessage(title),
+        preview: last?.content ? titleFromMessage(last.content) : 'No messages yet',
+        date: last?.created_at ? formatDate(last.created_at) : '',
+        messages: sorted.map((row) => ({
+          id: row.id,
+          role: (row.role === 'assistant' ? 'assistant' : 'user') as Message['role'],
+          content: row.content,
+          timestamp: formatTime(row.created_at),
+        })),
+      }
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .map(({ createdAt: _createdAt, ...conversation }) => conversation)
 }
 
 export default function ChatPage() {
   const router = useRouter()
-
   const [supabase] = useState(() => createBrowserClient())
-
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [loadingHistory, setLoadingHistory] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isThinking, setIsThinking] = useState(false)
+  const [error, setError] = useState('')
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  const persistConversations = useCallback((next: Conversation[]) => {
+  const activeConversation = useMemo(
+    () => conversations.find((conversation) => conversation.id === activeConversationId),
+    [activeConversationId, conversations]
+  )
+
+  const activeTitle =
+    activeConversation?.title ||
+    messages.find((message) => message.role === 'user')?.content ||
+    'Tanzai chat'
+
+  const setConversationState = useCallback((next: Conversation[]) => {
     setConversations(next)
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-  }, [])
+    const active = next.find((conversation) => conversation.id === activeConversationId)
+    if (active) {
+      setMessages(active.messages)
+    }
+  }, [activeConversationId])
+
+  const loadHistory = useCallback(
+    async (currentUser: SupabaseUser) => {
+      setLoadingHistory(true)
+      setError('')
+
+      const { data, error } = await supabase
+        .from('chat_history')
+        .select('id,user_id,chat_id,role,content,title,created_at')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        setError('Chat history is not available yet.')
+        const empty = createEmptyConversation()
+        setConversations([empty])
+        setActiveConversationId(empty.id)
+        setMessages([])
+        setLoadingHistory(false)
+        return
+      }
+
+      const grouped = groupRows((data || []) as ChatHistoryRow[])
+      const next = grouped.length > 0 ? grouped : [createEmptyConversation()]
+      setConversations(next)
+      setActiveConversationId(next[0].id)
+      setMessages(next[0].messages)
+      setLoadingHistory(false)
+    },
+    [supabase]
+  )
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY)
-
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Conversation[]
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setConversations(parsed)
-          setActiveConversationId(parsed[0].id)
-          setMessages(parsed[0].messages)
-          return
-        }
-      } catch {
-        window.localStorage.removeItem(STORAGE_KEY)
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      if (error || !user) {
+        router.replace('/login')
+        return
       }
-    }
 
-    const initial = createConversation()
-    setConversations([initial])
-    setActiveConversationId(initial.id)
-  }, [])
+      setUser(user)
+      loadHistory(user)
+    })
+  }, [loadHistory, router, supabase])
 
-  // Listen for sign-out events while the tab is open (e.g. user signs out in
-  // another tab, or the refresh token is revoked server-side).
   useEffect(() => {
     const {
       data: { subscription },
@@ -115,47 +182,44 @@ export default function ChatPage() {
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase, router])
+  }, [router, supabase])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isThinking])
 
-  const updateActiveConversation = useCallback(
-    (nextMessages: Message[]) => {
+  const upsertLocalConversation = useCallback(
+    (chatId: string, nextMessages: Message[], title?: string) => {
+      const lastMessage = nextMessages[nextMessages.length - 1]
+      const firstUserMessage = nextMessages.find((message) => message.role === 'user')
+      const nextTitle = title || activeConversation?.title || titleFromMessage(firstUserMessage?.content || '')
+      const nextConversation: Conversation = {
+        id: chatId,
+        title: nextTitle,
+        preview: lastMessage?.content ? titleFromMessage(lastMessage.content) : 'No messages yet',
+        date: new Date().toLocaleDateString([], { month: 'short', day: 'numeric' }),
+        messages: nextMessages,
+      }
+
       setMessages(nextMessages)
-
-      setConversations((prev) => {
-        const currentId = activeConversationId || prev[0]?.id || createConversation().id
-        const existing = prev.find((conversation) => conversation.id === currentId)
-        const firstUserMessage = nextMessages.find((message) => message.role === 'user')
-        const lastMessage = nextMessages[nextMessages.length - 1]
-        const updated: Conversation = {
-          ...(existing || createConversation()),
-          id: currentId,
-          title: firstUserMessage ? titleFromMessage(firstUserMessage.content) : 'New conversation',
-          preview: lastMessage?.content ? titleFromMessage(lastMessage.content) : 'No messages yet',
-          date: new Date().toLocaleDateString([], { month: 'short', day: 'numeric' }),
-          messages: nextMessages,
-        }
-        const next = [updated, ...prev.filter((conversation) => conversation.id !== currentId)]
-
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-        return next
-      })
+      setConversations((prev) => [
+        nextConversation,
+        ...prev.filter((conversation) => conversation.id !== chatId),
+      ])
+      setActiveConversationId(chatId)
     },
-    [activeConversationId]
+    [activeConversation?.title]
   )
 
   const handleNewConversation = useCallback(() => {
-    const next = createConversation()
-    const updated = [next, ...conversations]
-    persistConversations(updated)
+    const next = createEmptyConversation()
+    abortRef.current?.abort()
+    setError('')
+    setIsThinking(false)
+    setConversations((prev) => [next, ...prev.filter((conversation) => conversation.messages.length > 0)])
     setActiveConversationId(next.id)
     setMessages([])
-    setIsThinking(false)
-    abortRef.current?.abort()
-  }, [conversations, persistConversations])
+  }, [])
 
   const handleSelectConversation = useCallback(
     (id: string) => {
@@ -163,6 +227,7 @@ export default function ChatPage() {
       if (!conversation) return
 
       abortRef.current?.abort()
+      setError('')
       setIsThinking(false)
       setActiveConversationId(id)
       setMessages(conversation.messages)
@@ -170,14 +235,59 @@ export default function ChatPage() {
     [conversations]
   )
 
+  const handleRenameConversation = useCallback(
+    async (id: string, title: string) => {
+      if (!user) return
+
+      const clean = titleFromMessage(title)
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === id ? { ...conversation, title: clean } : conversation
+        )
+      )
+
+      await supabase
+        .from('chat_history')
+        .update({ title: clean })
+        .eq('user_id', user.id)
+        .eq('chat_id', id)
+    },
+    [supabase, user]
+  )
+
+  const handleDeleteConversation = useCallback(
+    async (id: string) => {
+      if (!user) return
+
+      await supabase.from('chat_history').delete().eq('user_id', user.id).eq('chat_id', id)
+
+      setConversations((prev) => {
+        const next = prev.filter((conversation) => conversation.id !== id)
+        const fallback = next[0] || createEmptyConversation()
+        if (id === activeConversationId) {
+          setActiveConversationId(fallback.id)
+          setMessages(fallback.messages)
+        }
+        return next.length > 0 ? next : [fallback]
+      })
+    },
+    [activeConversationId, supabase, user]
+  )
+
   const handleClearConversation = useCallback(() => {
-    const nextMessages: Message[] = []
-    updateActiveConversation(nextMessages)
-  }, [updateActiveConversation])
+    if (activeConversationId) {
+      handleDeleteConversation(activeConversationId)
+    }
+  }, [activeConversationId, handleDeleteConversation])
 
   const handleSend = async (text: string) => {
-    if (isThinking) return
+    if (isThinking || !user) return
 
+    const chatId = activeConversationId || crypto.randomUUID()
+    const firstUserMessage = messages.find((message) => message.role === 'user')
+    const title = activeConversation?.title && activeConversation.title !== 'New conversation'
+      ? activeConversation.title
+      : titleFromMessage(firstUserMessage?.content || text)
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -188,39 +298,78 @@ export default function ChatPage() {
     const controller = new AbortController()
 
     abortRef.current = controller
-    updateActiveConversation(nextMessages)
+    setError('')
     setIsThinking(true)
+    upsertLocalConversation(chatId, nextMessages, title)
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          Accept: 'text/plain',
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
+          chatId,
+          title,
           message: text,
-          messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: nextMessages.map(
+            (message): EngineChatMessage => ({
+              role: message.role,
+              content: message.content,
+            })
+          ),
         }),
         signal: controller.signal,
       })
-
-      const data = (await response.json()) as ChatApiResponse
 
       if (response.status === 401) {
         router.replace('/login')
         return
       }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.answer || data.error || 'Tanzai could not generate a response right now.')
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.answer || 'Tanzai could not generate a response right now.')
       }
 
-      const assistantMsg: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: data.answer || 'Tanzai could not generate a response right now.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+      const assistantId = crypto.randomUUID()
+      let answer = ''
+      let streamedMessages = [
+        ...nextMessages,
+        {
+          id: assistantId,
+          role: 'assistant' as const,
+          content: '',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isStreaming: true,
+        },
+      ]
+
+      upsertLocalConversation(chatId, streamedMessages, title)
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          answer += decoder.decode(value, { stream: true })
+          streamedMessages = streamedMessages.map((message) =>
+            message.id === assistantId ? { ...message, content: answer } : message
+          )
+          upsertLocalConversation(chatId, streamedMessages, title)
+        }
+      } else {
+        answer = await response.text()
       }
 
-      updateActiveConversation([...nextMessages, assistantMsg])
+      const finalMessages = streamedMessages.map((message) =>
+        message.id === assistantId
+          ? { ...message, content: answer.trim(), isStreaming: false }
+          : message
+      )
+      upsertLocalConversation(chatId, finalMessages, title)
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
 
@@ -230,11 +379,11 @@ export default function ChatPage() {
         content:
           error instanceof Error
             ? error.message
-            : 'Unable to connect to Tanzai engine. Please try again.',
+            : 'Unable to connect to Tanzai. Please try again.',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
 
-      updateActiveConversation([...nextMessages, assistantMsg])
+      upsertLocalConversation(chatId, [...nextMessages, assistantMsg], title)
     } finally {
       setIsThinking(false)
       abortRef.current = null
@@ -245,6 +394,20 @@ export default function ChatPage() {
     abortRef.current?.abort()
     abortRef.current = null
     setIsThinking(false)
+    setMessages((prev) => prev.map((message) => ({ ...message, isStreaming: false })))
+  }
+
+  if (loadingHistory) {
+    return (
+      <div className="flex h-dvh items-center justify-center bg-background px-4">
+        <div className="text-center">
+          <TanzaiLogo className="mb-4 justify-center" />
+          <div className="mx-auto h-2 w-32 overflow-hidden rounded-full bg-muted">
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -261,6 +424,8 @@ export default function ChatPage() {
         activeConversationId={activeConversationId}
         onNewConversation={handleNewConversation}
         onSelectConversation={handleSelectConversation}
+        onRenameConversation={handleRenameConversation}
+        onDeleteConversation={handleDeleteConversation}
       />
 
       <div className="flex-1 flex flex-col min-w-0 relative">
@@ -275,9 +440,7 @@ export default function ChatPage() {
 
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-semibold text-foreground truncate">
-              {messages.find((message) => message.role === 'user')
-                ? titleFromMessage(messages.find((message) => message.role === 'user')?.content || '')
-                : 'Tanzai chat'}
+              {titleFromMessage(activeTitle)}
             </h1>
             <div className="mt-0.5 hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <ShieldCheck size={11} className="text-primary" />
@@ -297,8 +460,8 @@ export default function ChatPage() {
               <button
                 onClick={handleClearConversation}
                 className="rounded-xl p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                aria-label="Clear conversation"
-                title="Clear conversation"
+                aria-label="Delete conversation"
+                title="Delete conversation"
               >
                 <Trash2 size={16} />
               </button>
@@ -313,6 +476,12 @@ export default function ChatPage() {
           aria-label="Conversation"
         >
           <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6 space-y-6">
+            {error && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -352,7 +521,9 @@ export default function ChatPage() {
             ))}
 
             <AnimatePresence>
-              {isThinking && <ThinkingIndicator key="thinking" />}
+              {isThinking && !messages.some((message) => message.isStreaming) && (
+                <ThinkingIndicator key="thinking" />
+              )}
             </AnimatePresence>
 
             <div ref={bottomRef} />
@@ -365,7 +536,6 @@ export default function ChatPage() {
               onSend={handleSend}
               isStreaming={isThinking}
               onStop={handleStop}
-              memoryEnabled={false}
             />
           </div>
         </div>

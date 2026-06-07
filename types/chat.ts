@@ -8,5 +8,7 @@ export type EngineChatMessage = {
 export type ChatApiResponse = {
   answer: string
   success: boolean
+  chatId?: string
+  title?: string
   error?: string
 }

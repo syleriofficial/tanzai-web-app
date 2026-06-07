@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { completeWithSyleri } from '@/lib/ai/syleri'
+import { completeWithEngine } from '@/lib/ai/engine'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
 import { type ChatApiResponse, type EngineChatMessage } from '@/types/chat'
@@ -11,6 +11,30 @@ const CHAT_RATE_WINDOW_MS = 60 * 1000
 
 function json(body: ChatApiResponse, status = 200) {
   return NextResponse.json(body, { status })
+}
+
+function streamText(text: string, headers?: HeadersInit) {
+  const encoder = new TextEncoder()
+  const words = text.match(/\S+\s*/g) || [text]
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      for (const word of words) {
+        controller.enqueue(encoder.encode(word))
+        await new Promise((resolve) => setTimeout(resolve, 8))
+      }
+
+      controller.close()
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Cache-Control': 'no-store',
+      'Content-Type': 'text/plain; charset=utf-8',
+      ...headers,
+    },
+  })
 }
 
 function normalizeMessages(body: unknown): EngineChatMessage[] {
@@ -90,6 +114,19 @@ export async function POST(req: Request) {
 
     const body = await req.json().catch(() => null)
     const messages = normalizeMessages(body)
+    const payload = (body || {}) as {
+      chatId?: unknown
+      title?: unknown
+    }
+    const chatId =
+      typeof payload.chatId === 'string' && payload.chatId.trim()
+        ? payload.chatId.trim()
+        : crypto.randomUUID()
+    const title =
+      typeof payload.title === 'string' && payload.title.trim()
+        ? payload.title.trim().slice(0, 80)
+        : messages.find((message) => message.role === 'user')?.content.slice(0, 80) ||
+          'New conversation'
 
     if (messages.length === 0) {
       return json(
@@ -102,17 +139,41 @@ export async function POST(req: Request) {
       )
     }
 
-    const answer = await completeWithSyleri(messages)
+    const answer = await completeWithEngine(messages)
+    const userMessage = [...messages].reverse().find((message) => message.role === 'user')
 
-    return json({
-      answer,
-      success: true,
+    if (userMessage) {
+      const { error: insertError } = await supabase.from('chat_history').insert([
+        {
+          chat_id: chatId,
+          content: userMessage.content,
+          role: 'user',
+          title,
+          user_id: user.id,
+        },
+        {
+          chat_id: chatId,
+          content: answer,
+          role: 'assistant',
+          title,
+          user_id: user.id,
+        },
+      ])
+
+      if (insertError) {
+        throw new Error('Unable to save chat history.')
+      }
+    }
+
+    return streamText(answer, {
+      'x-tanzai-chat-id': chatId,
+      'x-tanzai-chat-title': encodeURIComponent(title),
     })
   } catch (error) {
     const message =
       error instanceof Error
         ? error.message
-        : 'Something went wrong while connecting to Syleri Engine.'
+        : 'Something went wrong while connecting to Tanzai.'
 
     return json(
       {

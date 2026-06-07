@@ -28,7 +28,7 @@ export default function SecurityPage() {
             the team has reviewed them.
           </p>
           <Link
-            href="mailto:syleri.official@gmail.com?subject=Tanzai%20security%20report"
+            href="mailto:security@tanzaiai.com?subject=Tanzai%20security%20report"
             className="text-primary hover:underline"
           >
             Report a security issue

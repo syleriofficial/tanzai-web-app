@@ -18,8 +18,7 @@ export default function PrivacyPage() {
           </div>
           <p className="text-muted-foreground leading-relaxed">
             Tanzai uses account, authentication, and conversation data to run
-            the product and provide the AI workspace. The app is built with
-            Supabase Auth and Syleri Engine. Conversations are not sold, and
+            the product and provide the AI workspace. Conversations are not sold, and
             Tanzai does not use your private conversations to train Tanzai-owned
             models.
           </p>

@@ -13,6 +13,8 @@ import {
   CreditCard,
   X,
   Brain,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { type User as SupabaseUser } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
@@ -34,6 +36,8 @@ interface SidebarProps {
   activeConversationId: string
   onNewConversation: () => void
   onSelectConversation: (id: string) => void
+  onRenameConversation: (id: string, title: string) => void
+  onDeleteConversation: (id: string) => void
 }
 
 export function ChatSidebar({
@@ -43,6 +47,8 @@ export function ChatSidebar({
   activeConversationId,
   onNewConversation,
   onSelectConversation,
+  onRenameConversation,
+  onDeleteConversation,
 }: SidebarProps) {
   const [search, setSearch] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
@@ -162,29 +168,59 @@ export function ChatSidebar({
           ) : (
             <div className="space-y-1">
               {filtered.map((chat) => (
-                <button
+                <div
                   key={chat.id}
-                  onClick={() => {
-                    onSelectConversation(chat.id)
-                    onClose()
-                  }}
                   className={cn(
-                    'w-full rounded-xl px-3 py-2.5 text-left transition-colors',
+                    'group rounded-xl transition-colors',
                     chat.id === activeConversationId
                       ? 'bg-accent text-sidebar-accent-foreground'
                       : 'hover:bg-accent/60 text-sidebar-foreground'
                   )}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-xs font-medium">{chat.title}</p>
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
-                      {chat.date}
-                    </span>
+                  <button
+                    onClick={() => {
+                      onSelectConversation(chat.id)
+                      onClose()
+                    }}
+                    className="w-full px-3 py-2.5 text-left"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-xs font-medium">{chat.title}</p>
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        {chat.date}
+                      </span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                      {chat.preview}
+                    </p>
+                  </button>
+
+                  <div className="flex items-center gap-1 px-2 pb-2 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                    <button
+                      onClick={() => {
+                        const title = window.prompt('Rename chat', chat.title)
+                        if (title?.trim()) onRenameConversation(chat.id, title.trim())
+                      }}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                      aria-label="Rename chat"
+                      title="Rename chat"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Delete this chat?')) {
+                          onDeleteConversation(chat.id)
+                        }
+                      }}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      aria-label="Delete chat"
+                      title="Delete chat"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
-                    {chat.preview}
-                  </p>
-                </button>
+                </div>
               ))}
             </div>
           )}

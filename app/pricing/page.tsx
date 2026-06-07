@@ -49,7 +49,7 @@ const plans = [
     yearlyPrice: null,
     description: 'Custom deployment with full security and compliance controls.',
     cta: 'Contact sales',
-    href: 'mailto:syleri.official@gmail.com?subject=Tanzai%20Enterprise%20sales',
+    href: 'mailto:sales@tanzaiai.com?subject=Tanzai%20Enterprise%20sales',
     highlight: false,
     badge: 'Custom',
   },

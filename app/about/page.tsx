@@ -17,8 +17,8 @@ export default function AboutPage() {
           <div className="space-y-5 text-muted-foreground leading-relaxed">
             <p>
               Tanzai is built for people who use AI to think, write, research,
-              plan, and build. The product starts with a reliable chat workspace
-              powered by Syleri Engine, then expands carefully into files,
+              plan, and build. The product starts with a reliable chat workspace,
+              then expands carefully into files,
               memory, and richer collaboration.
             </p>
             <p>

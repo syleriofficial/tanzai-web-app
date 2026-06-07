@@ -39,7 +39,7 @@ export function HeroSection() {
           <motion.div variants={fadeUp} className="mb-6">
             <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium bg-card border border-border text-muted-foreground">
               <Sparkles size={12} className="text-primary" />
-              Powered by Syleri Engine
+              Built for focused AI work
             </span>
           </motion.div>
 

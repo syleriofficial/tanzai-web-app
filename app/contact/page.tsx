@@ -21,11 +21,11 @@ export default function ContactPage() {
             description so the request can be handled faster.
           </p>
           <Link
-            href="mailto:syleri.official@gmail.com?subject=Tanzai%20support"
+            href="mailto:support@tanzaiai.com?subject=Tanzai%20support"
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <Mail size={16} />
-            syleri.official@gmail.com
+            support@tanzaiai.com
           </Link>
         </section>
       </main>

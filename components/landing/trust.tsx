@@ -12,7 +12,7 @@ const trustPoints = [
   {
     icon: KeyRound,
     title: 'Keys stay server-side',
-    description: 'Syleri and Stripe secrets are never called directly from the browser.',
+    description: 'Private engine and billing keys are never called directly from the browser.',
   },
   {
     icon: Server,
