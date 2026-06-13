@@ -1,10 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import {
-  Paperclip, Mic, Image as ImageIcon, ArrowUp,
-  Square, Brain
-} from 'lucide-react'
+import { ArrowUp, Brain, Globe, Paperclip, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface InputBarProps {
@@ -26,14 +23,13 @@ export function ChatInputBar({
   onSend,
   isStreaming,
   onStop,
-  memoryEnabled,
+  memoryEnabled = true,
   onToggleMemory,
 }: InputBarProps) {
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
@@ -59,7 +55,6 @@ export function ChatInputBar({
 
   return (
     <div className="px-3 sm:px-4 pb-4 pt-2">
-      {/* Suggestion chips — only when empty & unfocused */}
       {!value && !focused && (
         <div className="flex flex-wrap gap-2 justify-center mb-3">
           {suggestions.map((s) => (
@@ -83,49 +78,45 @@ export function ChatInputBar({
           focused ? 'border-primary/40' : 'border-border/60'
         )}
       >
-        {/* Toolbar top */}
-        <div className="flex items-center gap-1 px-3 pt-2.5 pb-1">
-          <label className="p-1.5 rounded-lg text-muted-foreground/45 cursor-not-allowed transition-colors" title="File upload is coming soon">
-            <Paperclip size={15} />
-            <input type="file" className="sr-only" accept=".pdf,.txt,.doc,.docx,.csv,.json" aria-label="Upload file" disabled />
-          </label>
-          <label className="p-1.5 rounded-lg text-muted-foreground/45 cursor-not-allowed transition-colors" title="Image upload is coming soon">
-            <ImageIcon size={15} />
-            <input type="file" className="sr-only" accept="image/*" aria-label="Upload image" disabled />
-          </label>
+        <div className="flex items-center gap-1 px-3 pt-2">
           <button
-            className="p-1.5 rounded-lg text-muted-foreground/45 cursor-not-allowed transition-colors"
-            title="Voice input is coming soon"
-            aria-label="Voice input"
+            type="button"
             disabled
+            className="rounded-lg p-1.5 text-muted-foreground/45 cursor-not-allowed"
+            aria-label="File upload placeholder"
+            title="File upload placeholder"
           >
-            <Mic size={15} />
+            <Paperclip size={14} />
           </button>
-
-          {/* Spacer */}
-          <div className="flex-1" />
-
-          {/* Memory toggle */}
           <button
-            onClick={onToggleMemory}
-            disabled={!onToggleMemory}
-            className={cn(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-              onToggleMemory && memoryEnabled
-                ? 'bg-accent text-primary border border-primary/20'
-                : onToggleMemory
-                  ? 'text-muted-foreground hover:text-foreground hover:bg-accent'
-                  : 'text-muted-foreground/45 cursor-not-allowed'
-            )}
-            title={onToggleMemory ? (memoryEnabled ? 'Memory on' : 'Memory off') : 'Memory is coming soon'}
-            aria-label={onToggleMemory ? 'Toggle memory' : 'Memory is coming soon'}
+            type="button"
+            disabled
+            className="rounded-lg p-1.5 text-muted-foreground/45 cursor-not-allowed"
+            aria-label="Web search placeholder"
+            title="Web search placeholder"
           >
-            <Brain size={12} />
-            <span className="hidden sm:inline">{onToggleMemory ? 'Memory' : 'Memory soon'}</span>
+            <Globe size={14} />
+          </button>
+          <button
+            type="button"
+            disabled={!onToggleMemory}
+            onClick={onToggleMemory}
+            className={cn(
+              'inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] transition-colors',
+              memoryEnabled
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+              !onToggleMemory && 'cursor-not-allowed opacity-50'
+            )}
+            aria-label="Memory placeholder"
+            aria-pressed={memoryEnabled}
+            title={memoryEnabled ? 'Memory on' : 'Memory off'}
+          >
+            <Brain size={14} />
+            <span className="hidden sm:inline">Memory {memoryEnabled ? 'on' : 'off'}</span>
           </button>
         </div>
 
-        {/* Text input */}
         <textarea
           ref={textareaRef}
           value={value}
@@ -133,14 +124,13 @@ export function ChatInputBar({
           onKeyDown={handleKeyDown}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder={isStreaming ? 'Tanzai is thinking...' : 'Ask Tanzai anything...'}
+          placeholder={isStreaming ? 'Tanzai is thinking...' : 'Ask anything in any language'}
           rows={1}
           disabled={isStreaming}
-          className="w-full bg-transparent px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none leading-relaxed min-h-[44px]"
+          className="w-full bg-transparent px-3 pt-2 pb-2 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none leading-relaxed min-h-[56px]"
           aria-label="Message input"
         />
 
-        {/* Bottom bar */}
         <div className="flex items-center justify-between px-3 pb-2.5">
           <p className="text-[10px] text-muted-foreground/40 hidden sm:block">
             {value.length > 0 ? `${value.length} chars` : 'Enter to send, Shift+Enter for newline'}

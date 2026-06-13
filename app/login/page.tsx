@@ -1,18 +1,17 @@
 'use client'
 
-import { Suspense, useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { createBrowserClient } from '@/lib/supabase'
 import { getSiteUrl } from '@/lib/site-url'
 
 function LoginForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const oauthError = searchParams.get('error')
 
   const [supabase] = useState(() => createBrowserClient())
 
@@ -21,9 +20,13 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [error, setError] = useState(oauthError ?? '')
+  const [error, setError] = useState('')
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const oauthError = params.get('error')
+    if (oauthError) setError(oauthError)
+
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) router.replace('/chat')
     })
@@ -72,6 +75,10 @@ function LoginForm() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <div className="fixed right-4 top-4 z-30">
+        <ThemeToggle />
+      </div>
+
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0" aria-hidden="true">
           <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[100px]" />
@@ -234,26 +241,6 @@ function LoginForm() {
   )
 }
 
-function LoginFallback() {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex justify-center">
-          <TanzaiLogo />
-        </div>
-        <div className="rounded-xl border border-border bg-card p-6">
-          <div className="h-5 w-32 rounded bg-muted animate-pulse mb-3" />
-          <div className="h-4 w-full rounded bg-muted/70 animate-pulse" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<LoginFallback />}>
-      <LoginForm />
-    </Suspense>
-  )
+  return <LoginForm />
 }

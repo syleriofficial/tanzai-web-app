@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { TanzaiLogo } from '@/components/tanzai-logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { createBrowserClient } from '@/lib/supabase'
 import { getSiteUrl } from '@/lib/site-url'
 
@@ -126,6 +127,10 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <div className="fixed right-4 top-4 z-30">
+        <ThemeToggle />
+      </div>
+
       {/* Left panel — decorative */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center">
         <div className="absolute inset-0" aria-hidden="true">

@@ -14,6 +14,8 @@ const plans = [
     id: null,
     monthlyPrice: 0,
     yearlyPrice: 0,
+    developingMonthlyPrice: 0,
+    developingYearlyPrice: 0,
     description: 'Explore Tanzai at no cost. No credit card needed.',
     cta: 'Get started free',
     href: '/signup',
@@ -25,6 +27,8 @@ const plans = [
     id: 'pro',
     monthlyPrice: 18,
     yearlyPrice: 14,
+    developingMonthlyPrice: 6,
+    developingYearlyPrice: 5,
     description: 'Higher-capacity AI for individuals who use Tanzai every day.',
     cta: 'Upgrade to Pro',
     href: '/signup?plan=pro',
@@ -36,6 +40,8 @@ const plans = [
     id: 'team',
     monthlyPrice: 22,
     yearlyPrice: 17,
+    developingMonthlyPrice: 10,
+    developingYearlyPrice: 8,
     description: 'Shared AI billing and team workflows for growing groups.',
     cta: 'Upgrade to Team',
     href: '/signup?plan=team',
@@ -47,6 +53,8 @@ const plans = [
     id: null,
     monthlyPrice: null,
     yearlyPrice: null,
+    developingMonthlyPrice: null,
+    developingYearlyPrice: null,
     description: 'Custom deployment with full security and compliance controls.',
     cta: 'Contact sales',
     href: 'mailto:sales@tanzaiai.com?subject=Tanzai%20Enterprise%20sales',
@@ -115,15 +123,54 @@ const faqs = [
   },
   {
     q: 'What payment methods do you accept?',
-    a: 'Paid plans use Stripe Checkout. Enterprise agreements can be handled directly.',
+    a: 'Paid plans support Stripe and Razorpay. Enterprise agreements can be handled directly.',
   },
   {
     q: 'Is there a free trial for Pro?',
-    a: 'Free accounts can start immediately. Paid plan trials or discounts are offered when they are active in Stripe.',
+    a: 'Free accounts can start immediately. Paid plan trials or discounts are offered when they are active.',
   },
 ]
 
 type Cell = boolean | string
+type PaymentProvider = 'stripe' | 'razorpay'
+
+type CheckoutResponse =
+  | {
+      provider: 'stripe'
+      url: string
+      error?: string
+    }
+  | {
+      provider: 'razorpay'
+      keyId: string
+      subscriptionId: string
+      name: string
+      description: string
+      email?: string
+      successUrl: string
+      error?: string
+    }
+
+type RazorpayOptions = {
+  key: string
+  subscription_id: string
+  name: string
+  description: string
+  prefill?: { email?: string }
+  handler: () => void
+  modal?: { ondismiss?: () => void }
+  theme?: { color?: string }
+}
+
+type RazorpayConstructor = new (options: RazorpayOptions) => {
+  open: () => void
+}
+
+declare global {
+  interface Window {
+    Razorpay?: RazorpayConstructor
+  }
+}
 
 function CellValue({ value }: { value: Cell }) {
   if (value === true) return <Check size={16} className="text-primary mx-auto" />
@@ -133,9 +180,25 @@ function CellValue({ value }: { value: Cell }) {
 
 export default function PricingPage() {
   const [yearly, setYearly] = useState(true)
+  const [regionalView, setRegionalView] = useState<'developed' | 'developing'>('developed')
+  const [provider, setProvider] = useState<PaymentProvider>('stripe')
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [checkoutPlan, setCheckoutPlan] = useState<string | null>(null)
   const [checkoutError, setCheckoutError] = useState('')
+
+  const loadRazorpay = () =>
+    new Promise<boolean>((resolve) => {
+      if (window.Razorpay) {
+        resolve(true)
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
 
   const startCheckout = async (plan: string) => {
     setCheckoutError('')
@@ -148,21 +211,52 @@ export default function PricingPage() {
         body: JSON.stringify({
           plan,
           interval: yearly ? 'yearly' : 'monthly',
+          provider,
         }),
       })
 
-      const data = (await response.json()) as { url?: string; error?: string }
+      const data = (await response.json()) as CheckoutResponse
 
       if (response.status === 401) {
         window.location.href = `/login?next=/pricing`
         return
       }
 
-      if (!response.ok || !data.url) {
+      if (!response.ok) {
         throw new Error(data.error || 'Unable to start checkout.')
       }
 
-      window.location.href = data.url
+      if (data.provider === 'stripe') {
+        window.location.href = data.url
+        return
+      }
+
+      const loaded = await loadRazorpay()
+
+      if (!loaded || !window.Razorpay) {
+        throw new Error('Unable to load Razorpay checkout.')
+      }
+
+      const checkout = new window.Razorpay({
+        key: data.keyId,
+        subscription_id: data.subscriptionId,
+        name: data.name,
+        description: data.description,
+        prefill: {
+          email: data.email,
+        },
+        handler: () => {
+          window.location.href = data.successUrl
+        },
+        modal: {
+          ondismiss: () => setCheckoutPlan(null),
+        },
+        theme: {
+          color: '#4cc9f0',
+        },
+      })
+
+      checkout.open()
     } catch (error) {
       setCheckoutError(
         error instanceof Error ? error.message : 'Unable to start checkout.'
@@ -192,6 +286,63 @@ export default function PricingPage() {
             <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed text-pretty">
               Start free. Scale as your thinking does. Cancel anytime.
             </p>
+
+            <div className="mt-5 inline-flex rounded-xl border border-border bg-card/70 p-1">
+              <button
+                type="button"
+                onClick={() => setRegionalView('developed')}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                  regionalView === 'developed'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Developed countries
+              </button>
+              <button
+                type="button"
+                onClick={() => setRegionalView('developing')}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                  regionalView === 'developing'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Developing countries
+              </button>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Checkout automatically applies the regional price from your country.
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setProvider('stripe')}
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-xs font-medium transition-colors',
+                  provider === 'stripe'
+                    ? 'border-primary bg-primary/15 text-primary'
+                    : 'border-border text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Stripe
+              </button>
+              <button
+                type="button"
+                onClick={() => setProvider('razorpay')}
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-xs font-medium transition-colors',
+                  provider === 'razorpay'
+                    ? 'border-primary bg-primary/15 text-primary'
+                    : 'border-border text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Razorpay
+              </button>
+            </div>
 
             {/* Billing toggle */}
             <div className="flex items-center justify-center gap-3 mt-8">
@@ -264,7 +415,13 @@ export default function PricingPage() {
                     ) : (
                       <>
                         <span className="text-2xl font-bold text-foreground">
-                          ${yearly ? plan.yearlyPrice : plan.monthlyPrice}
+                          ${regionalView === 'developing'
+                            ? yearly
+                              ? plan.developingYearlyPrice
+                              : plan.developingMonthlyPrice
+                            : yearly
+                              ? plan.yearlyPrice
+                              : plan.monthlyPrice}
                         </span>
                         <span className="text-xs text-muted-foreground">/mo{plan.name === 'Team' ? '/user' : ''}</span>
                       </>

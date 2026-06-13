@@ -9,6 +9,7 @@ import { ChatInputBar } from '@/components/chat/input-bar'
 import { ChatMessage, ThinkingIndicator, type Message } from '@/components/chat/message'
 import { ChatSidebar } from '@/components/chat/sidebar'
 import { TanzaiLogo } from '@/components/tanzai-logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { createBrowserClient } from '@/lib/supabase'
 import { type EngineChatMessage } from '@/types/chat'
 
@@ -22,20 +23,38 @@ type ChatHistoryRow = {
   created_at: string
 }
 
+type ChatRow = {
+  id: string
+  title: string
+  preview: string | null
+  created_at: string
+  updated_at: string
+}
+
+type MessageRow = {
+  id: string
+  chat_id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  created_at: string
+}
+
+type PinnedChatRow = {
+  chat_id: string
+}
+
+type UserSettingsRow = {
+  memory_enabled?: boolean | null
+}
+
 type Conversation = {
   id: string
+  pinned?: boolean
   title: string
   preview: string
   date: string
   messages: Message[]
 }
-
-const starterPrompts = [
-  'Plan my next product launch',
-  'Explain this code error clearly',
-  'Write a professional email draft',
-  'Turn these notes into action steps',
-]
 
 function createEmptyConversation(): Conversation {
   return {
@@ -80,6 +99,7 @@ function groupRows(rows: ChatHistoryRow[]): Conversation[] {
 
       return {
         id: chatId,
+        pinned: false,
         createdAt: last?.created_at || '',
         title: titleFromMessage(title),
         preview: last?.content ? titleFromMessage(last.content) : 'No messages yet',
@@ -96,6 +116,46 @@ function groupRows(rows: ChatHistoryRow[]): Conversation[] {
     .map(({ createdAt: _createdAt, ...conversation }) => conversation)
 }
 
+function groupNormalizedRows(
+  chats: ChatRow[],
+  messages: MessageRow[],
+  pinnedChatIds: Set<string>
+): Conversation[] {
+  const grouped = new Map<string, MessageRow[]>()
+
+  messages.forEach((message) => {
+    grouped.set(message.chat_id, [...(grouped.get(message.chat_id) || []), message])
+  })
+
+  return chats
+    .map((chat) => {
+      const sorted = [...(grouped.get(chat.id) || [])].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      )
+      const last = sorted[sorted.length - 1]
+
+      return {
+        id: chat.id,
+        pinned: pinnedChatIds.has(chat.id),
+        title: titleFromMessage(chat.title || 'New conversation'),
+        preview: chat.preview || (last?.content ? titleFromMessage(last.content) : 'No messages yet'),
+        date: formatDate(chat.updated_at || chat.created_at),
+        updatedAt: chat.updated_at || chat.created_at,
+        messages: sorted.map((row) => ({
+          id: row.id,
+          role: (row.role === 'assistant' ? 'assistant' : 'user') as Message['role'],
+          content: row.content,
+          timestamp: formatTime(row.created_at),
+        })),
+      }
+    })
+    .sort((a, b) => {
+      if (a.pinned !== b.pinned) return Number(Boolean(b.pinned)) - Number(Boolean(a.pinned))
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    })
+    .map(({ updatedAt: _updatedAt, ...conversation }) => conversation)
+}
+
 export default function ChatPage() {
   const router = useRouter()
   const [supabase] = useState(() => createBrowserClient())
@@ -106,6 +166,7 @@ export default function ChatPage() {
   const [activeConversationId, setActiveConversationId] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isThinking, setIsThinking] = useState(false)
+  const [memoryEnabled, setMemoryEnabled] = useState(false)
   const [error, setError] = useState('')
 
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -121,18 +182,54 @@ export default function ChatPage() {
     messages.find((message) => message.role === 'user')?.content ||
     'Tanzai chat'
 
-  const setConversationState = useCallback((next: Conversation[]) => {
-    setConversations(next)
-    const active = next.find((conversation) => conversation.id === activeConversationId)
-    if (active) {
-      setMessages(active.messages)
-    }
-  }, [activeConversationId])
-
   const loadHistory = useCallback(
     async (currentUser: SupabaseUser) => {
       setLoadingHistory(true)
       setError('')
+
+      const [{ data: chats, error: chatsError }, { data: settings }] = await Promise.all([
+        supabase
+          .from('chats')
+          .select('id,title,preview,created_at,updated_at')
+          .eq('user_id', currentUser.id)
+          .order('updated_at', { ascending: false }),
+        supabase
+          .from('user_settings')
+          .select('memory_enabled')
+          .eq('user_id', currentUser.id)
+          .maybeSingle(),
+      ])
+
+      if (settings) {
+        setMemoryEnabled(((settings as UserSettingsRow).memory_enabled ?? false) === true)
+      }
+
+      if (!chatsError) {
+        const [{ data: normalizedMessages }, { data: pinnedRows }] = await Promise.all([
+          supabase
+            .from('messages')
+            .select('id,chat_id,role,content,created_at')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: true }),
+          supabase
+            .from('pinned_chats')
+            .select('chat_id')
+            .eq('user_id', currentUser.id),
+        ])
+
+        const pinnedChatIds = new Set(((pinnedRows || []) as PinnedChatRow[]).map((row) => row.chat_id))
+        const grouped = groupNormalizedRows(
+          (chats || []) as ChatRow[],
+          (normalizedMessages || []) as MessageRow[],
+          pinnedChatIds
+        )
+        const next = grouped.length > 0 ? grouped : [createEmptyConversation()]
+        setConversations(next)
+        setActiveConversationId(next[0].id)
+        setMessages(next[0].messages)
+        setLoadingHistory(false)
+        return
+      }
 
       const { data, error } = await supabase
         .from('chat_history')
@@ -141,7 +238,7 @@ export default function ChatPage() {
         .order('created_at', { ascending: true })
 
       if (error) {
-        setError('Chat history is not available yet.')
+        setError('We could not load your chat history. Start a new chat and try again.')
         const empty = createEmptyConversation()
         setConversations([empty])
         setActiveConversationId(empty.id)
@@ -247,6 +344,12 @@ export default function ChatPage() {
       )
 
       await supabase
+        .from('chats')
+        .update({ title: clean, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+        .eq('id', id)
+
+      await supabase
         .from('chat_history')
         .update({ title: clean })
         .eq('user_id', user.id)
@@ -259,6 +362,7 @@ export default function ChatPage() {
     async (id: string) => {
       if (!user) return
 
+      await supabase.from('chats').delete().eq('user_id', user.id).eq('id', id)
       await supabase.from('chat_history').delete().eq('user_id', user.id).eq('chat_id', id)
 
       setConversations((prev) => {
@@ -275,16 +379,79 @@ export default function ChatPage() {
   )
 
   const handleClearConversation = useCallback(() => {
-    if (activeConversationId) {
-      handleDeleteConversation(activeConversationId)
-    }
-  }, [activeConversationId, handleDeleteConversation])
+    if (!activeConversationId || !user) return
 
-  const handleSend = async (text: string) => {
+    supabase.from('messages').delete().eq('user_id', user.id).eq('chat_id', activeConversationId)
+    supabase.from('chat_history').delete().eq('user_id', user.id).eq('chat_id', activeConversationId)
+    supabase
+      .from('chats')
+      .update({ preview: null, updated_at: new Date().toISOString() })
+      .eq('user_id', user.id)
+      .eq('id', activeConversationId)
+
+    setMessages([])
+    setConversations((prev) =>
+      prev.map((conversation) =>
+        conversation.id === activeConversationId
+          ? { ...conversation, preview: 'No messages yet', messages: [] }
+          : conversation
+      )
+    )
+  }, [activeConversationId, supabase, user])
+
+  const handleTogglePinConversation = useCallback(
+    async (id: string) => {
+      if (!user) return
+
+      const current = conversations.find((conversation) => conversation.id === id)
+      const nextPinned = !current?.pinned
+
+      setConversations((prev) =>
+        prev
+          .map((conversation) =>
+            conversation.id === id ? { ...conversation, pinned: nextPinned } : conversation
+          )
+          .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)))
+      )
+
+      if (nextPinned) {
+        await supabase.from('pinned_chats').upsert({
+          chat_id: id,
+          user_id: user.id,
+        })
+      } else {
+        await supabase.from('pinned_chats').delete().eq('user_id', user.id).eq('chat_id', id)
+      }
+    },
+    [conversations, supabase, user]
+  )
+
+  const handleToggleMemory = useCallback(async () => {
+    if (!user) return
+
+    const next = !memoryEnabled
+    setMemoryEnabled(next)
+
+    await supabase.from('user_settings').upsert({
+      memory_enabled: next,
+      updated_at: new Date().toISOString(),
+      user_id: user.id,
+    })
+  }, [memoryEnabled, supabase, user])
+
+  const handleSend = async (
+    text: string,
+    options?: {
+      appendUser?: boolean
+      baseMessages?: Message[]
+    }
+  ) => {
     if (isThinking || !user) return
 
     const chatId = activeConversationId || crypto.randomUUID()
-    const firstUserMessage = messages.find((message) => message.role === 'user')
+    const sourceMessages = options?.baseMessages || messages
+    const appendUser = options?.appendUser !== false
+    const firstUserMessage = sourceMessages.find((message) => message.role === 'user')
     const title = activeConversation?.title && activeConversation.title !== 'New conversation'
       ? activeConversation.title
       : titleFromMessage(firstUserMessage?.content || text)
@@ -294,7 +461,8 @@ export default function ChatPage() {
       content: text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
-    const nextMessages = [...messages, userMsg]
+    const nextMessages = appendUser ? [...sourceMessages, userMsg] : sourceMessages
+    const requestMessages = appendUser ? nextMessages : [...sourceMessages, userMsg]
     const controller = new AbortController()
 
     abortRef.current = controller
@@ -313,7 +481,8 @@ export default function ChatPage() {
           chatId,
           title,
           message: text,
-          messages: nextMessages.map(
+          memory_enabled: memoryEnabled,
+          messages: requestMessages.map(
             (message): EngineChatMessage => ({
               role: message.role,
               content: message.content,
@@ -330,7 +499,10 @@ export default function ChatPage() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null)
-        throw new Error(data?.answer || 'Tanzai could not generate a response right now.')
+        if (response.status === 429) {
+          throw new Error('You are sending messages too quickly. Please wait a moment and try again.')
+        }
+        throw new Error(data?.answer || 'Tanzai is having trouble replying. Please retry in a moment.')
       }
 
       const reader = response.body?.getReader()
@@ -373,17 +545,12 @@ export default function ChatPage() {
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
 
-      const assistantMsg: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content:
-          error instanceof Error
-            ? error.message
-            : 'Unable to connect to Tanzai. Please try again.',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }
-
-      upsertLocalConversation(chatId, [...nextMessages, assistantMsg], title)
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Tanzai could not reply right now. Please check your connection and try again.'
+      )
+      upsertLocalConversation(chatId, nextMessages, title)
     } finally {
       setIsThinking(false)
       abortRef.current = null
@@ -396,6 +563,91 @@ export default function ChatPage() {
     setIsThinking(false)
     setMessages((prev) => prev.map((message) => ({ ...message, isStreaming: false })))
   }
+
+  const handleDeleteMessage = useCallback(
+    async (messageId: string) => {
+      if (!user) return
+
+      const nextMessages = messages.filter((message) => message.id !== messageId)
+      setMessages(nextMessages)
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === activeConversationId
+            ? {
+                ...conversation,
+                messages: nextMessages,
+                preview: nextMessages.at(-1)?.content
+                  ? titleFromMessage(nextMessages.at(-1)!.content)
+                  : 'No messages yet',
+              }
+            : conversation
+        )
+      )
+
+      await supabase.from('messages').delete().eq('user_id', user.id).eq('id', messageId)
+      await supabase.from('chat_history').delete().eq('user_id', user.id).eq('id', messageId)
+    },
+    [activeConversationId, messages, supabase, user]
+  )
+
+  const handleRegenerate = useCallback(
+    (messageId: string) => {
+      const assistantIndex = messages.findIndex((message) => message.id === messageId)
+      if (assistantIndex <= 0) return
+
+      const previousUser = [...messages.slice(0, assistantIndex)]
+        .reverse()
+        .find((message) => message.role === 'user')
+      if (!previousUser) return
+
+      handleDeleteMessage(messageId)
+      handleSend(previousUser.content, {
+        appendUser: false,
+        baseMessages: messages.slice(0, assistantIndex),
+      })
+    },
+    [handleDeleteMessage, messages]
+  )
+
+  const handleContinue = useCallback(() => {
+    if (messages.length === 0) return
+
+    handleSend('Continue the previous response from where it stopped.', {
+      appendUser: false,
+      baseMessages: messages,
+    })
+  }, [messages])
+
+  const handleEditMessage = useCallback(
+    async (messageId: string, content: string) => {
+      if (!user) return
+
+      const messageIndex = messages.findIndex((message) => message.id === messageId)
+      if (messageIndex < 0) return
+
+      const trimmedMessages = messages.slice(0, messageIndex + 1).map((message) =>
+        message.id === messageId ? { ...message, content } : message
+      )
+      const removedMessages = messages.slice(messageIndex + 1)
+
+      setMessages(trimmedMessages)
+      upsertLocalConversation(activeConversationId, trimmedMessages)
+
+      await supabase.from('messages').update({ content }).eq('user_id', user.id).eq('id', messageId)
+      await supabase.from('chat_history').update({ content }).eq('user_id', user.id).eq('id', messageId)
+
+      for (const message of removedMessages) {
+        await supabase.from('messages').delete().eq('user_id', user.id).eq('id', message.id)
+        await supabase.from('chat_history').delete().eq('user_id', user.id).eq('id', message.id)
+      }
+
+      handleSend(content, {
+        appendUser: false,
+        baseMessages: trimmedMessages,
+      })
+    },
+    [activeConversationId, messages, supabase, upsertLocalConversation, user]
+  )
 
   if (loadingHistory) {
     return (
@@ -411,12 +663,13 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-dvh bg-background overflow-hidden">
+    <div className="flex h-dvh overflow-hidden bg-background">
       <ChatSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        conversations={conversations.map(({ id, title, preview, date }) => ({
+        conversations={conversations.map(({ id, pinned, title, preview, date }) => ({
           id,
+          pinned,
           title,
           preview,
           date,
@@ -426,9 +679,10 @@ export default function ChatPage() {
         onSelectConversation={handleSelectConversation}
         onRenameConversation={handleRenameConversation}
         onDeleteConversation={handleDeleteConversation}
+        onTogglePinConversation={handleTogglePinConversation}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 relative">
+      <div className="flex-1 flex flex-col min-w-0 relative bg-[radial-gradient(circle_at_top_right,rgb(37_99_235_/_0.08),transparent_28rem)]">
         <header className="flex items-center gap-3 px-3 sm:px-4 h-14 border-b border-border/50 flex-shrink-0 bg-background/85 backdrop-blur-sm">
           <button
             className="lg:hidden p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl transition-colors"
@@ -449,6 +703,7 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <ThemeToggle className="hidden sm:inline-flex" />
             <button
               onClick={handleNewConversation}
               className="hidden sm:flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-foreground hover:border-primary/40 hover:text-primary transition-colors"
@@ -460,8 +715,8 @@ export default function ChatPage() {
               <button
                 onClick={handleClearConversation}
                 className="rounded-xl p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
-                aria-label="Delete conversation"
-                title="Delete conversation"
+                aria-label="Clear chat"
+                title="Clear chat"
               >
                 <Trash2 size={16} />
               </button>
@@ -476,12 +731,6 @@ export default function ChatPage() {
           aria-label="Conversation"
         >
           <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6 space-y-6">
-            {error && (
-              <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {error}
-              </div>
-            )}
-
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
@@ -494,30 +743,25 @@ export default function ChatPage() {
                 <div className="text-center">
                   <TanzaiLogo size={32} className="justify-center mb-4" />
                   <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                    What are we thinking through?
+                    Ask anything in any language
                   </h2>
                   <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
-                    Ask for research, writing, coding help, planning, or a cleaner way
-                    to shape a rough idea.
+                    Tanzai can help in Hindi, English, Hinglish, and more with clear answers,
+                    practical writing, research, coding, and planning.
                   </p>
-                </div>
-
-                <div className="mt-8 grid gap-2 sm:grid-cols-2">
-                  {starterPrompts.map((prompt) => (
-                    <button
-                      key={prompt}
-                      onClick={() => handleSend(prompt)}
-                      className="rounded-xl border border-border bg-card px-4 py-3 text-left text-sm text-foreground hover:border-primary/40 hover:bg-accent/60 transition-colors"
-                    >
-                      {prompt}
-                    </button>
-                  ))}
                 </div>
               </motion.div>
             )}
 
             {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+              <ChatMessage
+                key={message.id}
+                message={message}
+                onContinue={handleContinue}
+                onDelete={handleDeleteMessage}
+                onEdit={handleEditMessage}
+                onRegenerate={handleRegenerate}
+              />
             ))}
 
             <AnimatePresence>
@@ -536,9 +780,34 @@ export default function ChatPage() {
               onSend={handleSend}
               isStreaming={isThinking}
               onStop={handleStop}
+              memoryEnabled={memoryEnabled}
+              onToggleMemory={handleToggleMemory}
             />
           </div>
         </div>
+
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="absolute bottom-28 left-1/2 z-20 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 rounded-2xl border border-destructive/30 bg-card px-4 py-3 text-sm text-destructive shadow-2xl"
+              role="alert"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span>{error}</span>
+                <button
+                  onClick={() => setError('')}
+                  className="rounded-md px-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label="Dismiss error"
+                >
+                  ×
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

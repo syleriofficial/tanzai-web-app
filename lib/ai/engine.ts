@@ -12,10 +12,9 @@ type EngineResponse = {
 function getEngineConfig() {
   const engineUrl =
     process.env.NEXT_PUBLIC_ENGINE_URL ||
-    process.env.ENGINE_URL ||
-    process.env.SYLERI_ENGINE_URL
-  const engineKey = process.env.ENGINE_API_KEY || process.env.SYLERI_API_KEY
-  const chatPath = process.env.ENGINE_CHAT_PATH || '/v1/chat/complete'
+    process.env.ENGINE_URL
+  const engineKey = process.env.ENGINE_API_KEY
+  const chatPath = process.env.ENGINE_CHAT_PATH || process.env.NEXT_PUBLIC_ENGINE_CHAT_PATH || '/api/chat'
 
   if (!engineUrl) {
     throw new Error('Engine URL is not configured.')
@@ -32,28 +31,34 @@ function getEngineConfig() {
   }
 }
 
-export async function completeWithEngine(messages: EngineChatMessage[]) {
+export async function requestEngineChat(messages: EngineChatMessage[], signal?: AbortSignal) {
   const { chatPath, engineKey, engineUrl } = getEngineConfig()
+
+  return fetch(`${engineUrl}${chatPath}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${engineKey}`,
+      Accept: 'application/json, text/event-stream, text/plain',
+      'Content-Type': 'application/json',
+      'x-api-key': engineKey,
+      'x-engine-key': engineKey,
+    },
+    body: JSON.stringify({
+      messages,
+      profile: 'balanced',
+      stream: true,
+    }),
+    cache: 'no-store',
+    signal,
+  })
+}
+
+export async function completeWithEngine(messages: EngineChatMessage[]) {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS)
 
   try {
-    const response = await fetch(`${engineUrl}${chatPath}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${engineKey}`,
-        'Content-Type': 'application/json',
-        'x-api-key': engineKey,
-        'x-engine-key': engineKey,
-        'x-syleri-key': engineKey,
-      },
-      body: JSON.stringify({
-        messages,
-        profile: 'balanced',
-      }),
-      cache: 'no-store',
-      signal: controller.signal,
-    })
+    const response = await requestEngineChat(messages, controller.signal)
 
     const data = (await response.json().catch(() => null)) as EngineResponse | null
 

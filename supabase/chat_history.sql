@@ -13,6 +13,13 @@ create table if not exists public.chat_history (
 create index if not exists chat_history_user_chat_created_idx
   on public.chat_history (user_id, chat_id, created_at);
 
+create index if not exists chat_history_user_created_idx
+  on public.chat_history (user_id, created_at desc);
+
+create index if not exists chat_history_user_chat_title_idx
+  on public.chat_history (user_id, chat_id, title)
+  where title is not null;
+
 alter table public.chat_history enable row level security;
 
 drop policy if exists "Users can read own chat history" on public.chat_history;

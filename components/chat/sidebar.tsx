@@ -11,8 +11,9 @@ import {
   Settings,
   User,
   CreditCard,
+  Pin,
+  PinOff,
   X,
-  Brain,
   Pencil,
   Trash2,
 } from 'lucide-react'
@@ -20,10 +21,12 @@ import { type User as SupabaseUser } from '@supabase/supabase-js'
 import { cn } from '@/lib/utils'
 import { createBrowserClient } from '@/lib/supabase'
 import { TanzaiLogo } from '@/components/tanzai-logo'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { LogoutButton } from '@/components/logout-button'
 
 interface Chat {
   id: string
+  pinned?: boolean
   title: string
   preview: string
   date: string
@@ -38,6 +41,7 @@ interface SidebarProps {
   onSelectConversation: (id: string) => void
   onRenameConversation: (id: string, title: string) => void
   onDeleteConversation: (id: string) => void
+  onTogglePinConversation: (id: string) => void
 }
 
 export function ChatSidebar({
@@ -49,9 +53,13 @@ export function ChatSidebar({
   onSelectConversation,
   onRenameConversation,
   onDeleteConversation,
+  onTogglePinConversation,
 }: SidebarProps) {
   const [search, setSearch] = useState('')
   const [profileOpen, setProfileOpen] = useState(false)
+  const [renamingChat, setRenamingChat] = useState<Chat | null>(null)
+  const [renameTitle, setRenameTitle] = useState('')
+  const [deletingChat, setDeletingChat] = useState<Chat | null>(null)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [supabase] = useState(() => createBrowserClient())
 
@@ -75,14 +83,108 @@ export function ChatSidebar({
 
   const avatarLetter = displayName.charAt(0).toUpperCase()
 
-  const filtered = conversations.filter(
-    (c) =>
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.preview.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = conversations
+    .filter(
+      (c) =>
+        c.title.toLowerCase().includes(search.toLowerCase()) ||
+        c.preview.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)))
 
   return (
     <>
+      <AnimatePresence>
+        {renamingChat && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl"
+            >
+              <h2 className="text-sm font-semibold text-foreground">Rename chat</h2>
+              <input
+                autoFocus
+                value={renameTitle}
+                onChange={(event) => setRenameTitle(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && renameTitle.trim()) {
+                    onRenameConversation(renamingChat.id, renameTitle.trim())
+                    setRenamingChat(null)
+                  }
+                  if (event.key === 'Escape') setRenamingChat(null)
+                }}
+                className="mt-4 w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                aria-label="Chat title"
+              />
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  className="rounded-xl border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setRenamingChat(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="rounded-xl bg-primary px-3 py-2 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                  disabled={!renameTitle.trim()}
+                  onClick={() => {
+                    onRenameConversation(renamingChat.id, renameTitle.trim())
+                    setRenamingChat(null)
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {deletingChat && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-2xl"
+            >
+              <h2 className="text-sm font-semibold text-foreground">Delete chat?</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                This removes the conversation from your Tanzai workspace.
+              </p>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  className="rounded-xl border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setDeletingChat(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="rounded-xl bg-destructive px-3 py-2 text-xs font-medium text-destructive-foreground"
+                  onClick={() => {
+                    onDeleteConversation(deletingChat.id)
+                    setDeletingChat(null)
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {open && (
           <motion.div
@@ -107,24 +209,13 @@ export function ChatSidebar({
         <div className="flex items-center justify-between px-4 h-14 border-b border-sidebar-border flex-shrink-0">
           <TanzaiLogo size={22} textSize="text-base" />
 
-          <div className="flex items-center gap-1">
-            <button
-              title="Memory is coming soon"
-              className="p-1.5 rounded-lg text-muted-foreground/45 cursor-not-allowed"
-              aria-label="Memory is coming soon"
-              disabled
-            >
-              <Brain size={15} />
-            </button>
-
-            <button
-              className="lg:hidden p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
-              onClick={onClose}
-              aria-label="Close sidebar"
-            >
-              <X size={15} />
-            </button>
-          </div>
+          <button
+            className="lg:hidden p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+            onClick={onClose}
+            aria-label="Close sidebar"
+          >
+            <X size={15} />
+          </button>
         </div>
 
         <div className="px-3 pt-3 pb-2 flex-shrink-0">
@@ -185,7 +276,10 @@ export function ChatSidebar({
                     className="w-full px-3 py-2.5 text-left"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-xs font-medium">{chat.title}</p>
+                      <p className="truncate text-xs font-medium">
+                        {chat.pinned ? 'Pinned · ' : ''}
+                        {chat.title}
+                      </p>
                       <span className="shrink-0 text-[10px] text-muted-foreground">
                         {chat.date}
                       </span>
@@ -197,9 +291,17 @@ export function ChatSidebar({
 
                   <div className="flex items-center gap-1 px-2 pb-2 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                     <button
+                      onClick={() => onTogglePinConversation(chat.id)}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                      aria-label={chat.pinned ? 'Unpin chat' : 'Pin chat'}
+                      title={chat.pinned ? 'Unpin chat' : 'Pin chat'}
+                    >
+                      {chat.pinned ? <PinOff size={12} /> : <Pin size={12} />}
+                    </button>
+                    <button
                       onClick={() => {
-                        const title = window.prompt('Rename chat', chat.title)
-                        if (title?.trim()) onRenameConversation(chat.id, title.trim())
+                        setRenamingChat(chat)
+                        setRenameTitle(chat.title)
                       }}
                       className="rounded-md p-1 text-muted-foreground hover:bg-background/70 hover:text-foreground"
                       aria-label="Rename chat"
@@ -209,9 +311,7 @@ export function ChatSidebar({
                     </button>
                     <button
                       onClick={() => {
-                        if (window.confirm('Delete this chat?')) {
-                          onDeleteConversation(chat.id)
-                        }
+                        setDeletingChat(chat)
                       }}
                       className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       aria-label="Delete chat"
@@ -281,6 +381,10 @@ export function ChatSidebar({
               </motion.div>
             )}
           </AnimatePresence>
+
+          <div className="mt-3 flex justify-center">
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
     </>

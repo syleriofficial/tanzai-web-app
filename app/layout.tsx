@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -62,23 +63,30 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-0XV20DC2QL"
-          strategy="afterInteractive"
-        />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Script
+            src="https://www.googletagmanager.com/gtag/js?id=G-0XV20DC2QL"
+            strategy="afterInteractive"
+          />
 
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-0XV20DC2QL');
-          `}
-        </Script>
+          <Script id="google-analytics" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-0XV20DC2QL');
+            `}
+          </Script>
 
-        {children}
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

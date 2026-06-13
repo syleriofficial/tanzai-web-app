@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useTheme } from 'next-themes'
 import { motion } from 'framer-motion'
 import {
   User,
@@ -54,8 +55,8 @@ export default function SettingsPage() {
   })
   const [memoryOn, setMemoryOn] = useState(true)
   const [language, setLanguage] = useState('English')
-  const [theme, setTheme] = useState('dark')
   const [user, setUser] = useState<SupabaseUser | null>(null)
+  const { theme = 'dark', setTheme } = useTheme()
 
   useEffect(() => {
     const getUser = async () => {

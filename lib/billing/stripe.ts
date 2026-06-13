@@ -6,6 +6,8 @@ export async function createCheckoutSession(params: {
   userId: string
   plan: string
   interval: string
+  region?: string
+  country?: string | null
   successUrl: string
   cancelUrl: string
 }) {
@@ -24,9 +26,13 @@ export async function createCheckoutSession(params: {
     'metadata[user_id]': params.userId,
     'metadata[plan]': params.plan,
     'metadata[interval]': params.interval,
+    'metadata[region]': params.region || 'developed',
+    'metadata[country]': params.country || 'unknown',
     'subscription_data[metadata][user_id]': params.userId,
     'subscription_data[metadata][plan]': params.plan,
     'subscription_data[metadata][interval]': params.interval,
+    'subscription_data[metadata][region]': params.region || 'developed',
+    'subscription_data[metadata][country]': params.country || 'unknown',
     allow_promotion_codes: 'true',
     billing_address_collection: 'auto',
   })
