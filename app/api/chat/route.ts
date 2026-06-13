@@ -83,15 +83,19 @@ function normalizeAction(value: unknown): ChatAction {
   return value === 'regenerate' || value === 'continue' || value === 'edit' ? value : 'send'
 }
 
-function resolveEngineUrl() {
+function resolveEngineUrls() {
   const baseUrl = process.env.ENGINE_URL || process.env.NEXT_PUBLIC_ENGINE_URL
-  const chatPath = process.env.ENGINE_CHAT_PATH || process.env.NEXT_PUBLIC_ENGINE_CHAT_PATH || '/api/chat'
+  const configuredPath = process.env.ENGINE_CHAT_PATH || process.env.NEXT_PUBLIC_ENGINE_CHAT_PATH
 
   if (!baseUrl) {
     throw new Error('Engine URL is not configured.')
   }
 
-  return new URL(chatPath, baseUrl.replace(/\/$/, '')).toString()
+  const paths = configuredPath
+    ? [configuredPath]
+    : ['/api/chat', '/chat', '/v1/chat/complete', '/v1/chat']
+
+  return paths.map((path) => new URL(path, baseUrl.replace(/\/$/, '')).toString())
 }
 
 function resolveEngineHeaders() {
@@ -204,6 +208,11 @@ async function ensureChat({
     .maybeSingle<ChatRow>()
 
   if (readError) {
+    console.error('[api/chat] chat read failed', {
+      chatId,
+      code: readError.code,
+      message: readError.message,
+    })
     throw new Error('Unable to read chat.')
   }
 
@@ -221,6 +230,11 @@ async function ensureChat({
     .single<ChatRow>()
 
   if (insertError || !data) {
+    console.error('[api/chat] chat insert failed', {
+      chatId,
+      code: insertError?.code,
+      message: insertError?.message,
+    })
     throw new Error('Unable to create chat.')
   }
 
@@ -260,6 +274,12 @@ async function saveMessage({
     .single<{ id: string }>()
 
   if (error || !data) {
+    console.error('[api/chat] message insert failed', {
+      chatId,
+      code: error?.code,
+      message: error?.message,
+      role,
+    })
     throw new Error('Unable to save chat message.')
   }
 
@@ -291,6 +311,11 @@ async function loadMessagesForChat({
     .order('created_at', { ascending: true })
 
   if (error) {
+    console.error('[api/chat] message load failed', {
+      chatId,
+      code: error.code,
+      message: error.message,
+    })
     throw new Error('Unable to load chat messages.')
   }
 
@@ -475,6 +500,66 @@ function streamEngineResponse({
   })
 }
 
+async function callEngine({
+  action,
+  body,
+  chatId,
+  effectiveMessage,
+  engineMessages,
+  parentMessageId,
+  req,
+  userId,
+}: {
+  action: ChatAction
+  body: ChatRequestBody
+  chatId: string
+  effectiveMessage: string
+  engineMessages: EngineChatMessage[]
+  parentMessageId: string
+  req: Request
+  userId: string
+}) {
+  const payload = JSON.stringify({
+    action,
+    chat_id: chatId,
+    message: effectiveMessage,
+    memory_enabled: body.memory_enabled === true,
+    messages: engineMessages,
+    parent_message_id: parentMessageId || null,
+    stream: true,
+    user_id: userId,
+  })
+  const engineUrls = resolveEngineUrls()
+  let lastError = 'Tanzai is temporarily unavailable.'
+
+  for (const engineUrl of engineUrls) {
+    const engineResponse = await fetch(engineUrl, {
+      method: 'POST',
+      headers: resolveEngineHeaders(),
+      body: payload,
+      cache: 'no-store',
+      signal: req.signal,
+    })
+
+    if (engineResponse.ok) return engineResponse
+
+    const data = (await engineResponse.json().catch(() => null)) as EngineJsonResponse | null
+    lastError = data?.error || resolveAnswer(data) || `Engine returned ${engineResponse.status}`
+
+    console.error('[api/chat] engine request failed', {
+      status: engineResponse.status,
+      path: new URL(engineUrl).pathname,
+      message: lastError,
+    })
+
+    if (engineResponse.status !== 404 && engineResponse.status !== 405) {
+      break
+    }
+  }
+
+  throw new Error(lastError)
+}
+
 export async function POST(req: Request) {
   try {
     const supabase = await createServerClient()
@@ -616,27 +701,16 @@ export async function POST(req: Request) {
 
     const engineMessages = buildEngineMessages(toEngineMessages(dbMessages, clientMessages))
 
-    const engineResponse = await fetch(resolveEngineUrl(), {
-      method: 'POST',
-      headers: resolveEngineHeaders(),
-      body: JSON.stringify({
-        action,
-        chat_id: chatId,
-        message: effectiveMessage,
-        memory_enabled: body.memory_enabled === true,
-        messages: engineMessages,
-        parent_message_id: userMessageId || parentMessageId || null,
-        stream: true,
-        user_id: user.id,
-      }),
-      cache: 'no-store',
-      signal: req.signal,
+    const engineResponse = await callEngine({
+      action,
+      body,
+      chatId,
+      effectiveMessage,
+      engineMessages,
+      parentMessageId: userMessageId || parentMessageId,
+      req,
+      userId: user.id,
     })
-
-    if (!engineResponse.ok) {
-      const data = (await engineResponse.json().catch(() => null)) as EngineJsonResponse | null
-      throw new Error(data?.error || resolveAnswer(data) || 'Tanzai is temporarily unavailable.')
-    }
 
     const onComplete = async (answer: string) => {
       if (!answer) return
@@ -687,9 +761,14 @@ export async function POST(req: Request) {
         ? error.message
         : 'Something went wrong while connecting to Tanzai.'
 
+    console.error('[api/chat] request failed', { message })
+
     return json(
       {
-        answer: message,
+        answer:
+          message === 'Engine URL is not configured.'
+            ? 'Tanzai is not configured yet. Please try again later.'
+            : message,
         success: false,
         error: 'engine_error',
       },
