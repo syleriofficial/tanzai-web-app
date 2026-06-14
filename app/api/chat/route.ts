@@ -260,18 +260,43 @@ async function saveMessage({
   title: string
   userId: string
 }) {
-  const { data, error } = await supabase
+  const fullPayload = {
+    chat_id: chatId,
+    content,
+    metadata: parentMessageId ? { parent_message_id: parentMessageId } : {},
+    role,
+    status,
+    user_id: userId,
+  }
+  const minimalPayload = {
+    chat_id: chatId,
+    content,
+    role,
+    user_id: userId,
+  }
+
+  let { data, error } = await supabase
     .from('messages')
-    .insert({
-      chat_id: chatId,
-      content,
-      metadata: parentMessageId ? { parent_message_id: parentMessageId } : {},
-      role,
-      status,
-      user_id: userId,
-    })
+    .insert(fullPayload)
     .select('id')
     .single<{ id: string }>()
+
+  if (error?.code === 'PGRST204') {
+    console.error('[api/chat] messages table missing production columns; retrying minimal insert', {
+      chatId,
+      message: error.message,
+      role,
+    })
+
+    const retry = await supabase
+      .from('messages')
+      .insert(minimalPayload)
+      .select('id')
+      .single<{ id: string }>()
+
+    data = retry.data
+    error = retry.error
+  }
 
   if (error || !data) {
     console.error('[api/chat] message insert failed', {
