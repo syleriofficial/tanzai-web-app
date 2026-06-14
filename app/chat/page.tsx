@@ -161,7 +161,7 @@ export default function ChatPage() {
   const [supabase] = useState(() => createBrowserClient())
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loadingHistory, setLoadingHistory] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeConversationId, setActiveConversationId] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
@@ -685,9 +685,10 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col min-w-0 relative bg-[radial-gradient(circle_at_top_right,rgb(37_99_235_/_0.08),transparent_28rem)]">
         <header className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-border/50 bg-background/85 px-4 backdrop-blur-sm sm:h-[72px] sm:px-6">
           <button
-            className="rounded-xl p-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open sidebar"
+            className="rounded-xl p-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            onClick={() => setSidebarOpen((open) => !open)}
+            aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            aria-expanded={sidebarOpen}
           >
             <Menu size={18} />
           </button>

@@ -201,7 +201,7 @@ export function ChatSidebar({
       <aside
         className={cn(
           'fixed inset-y-0 left-0 z-40 flex w-[320px] flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-300 ease-in-out xl:w-[340px]',
-          'lg:relative lg:translate-x-0',
+          'lg:relative',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
         aria-label="Chat navigation"
@@ -210,7 +210,7 @@ export function ChatSidebar({
           <TanzaiLogo size={26} textSize="text-xl" />
 
           <button
-            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             onClick={onClose}
             aria-label="Close sidebar"
           >
