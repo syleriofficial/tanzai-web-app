@@ -683,9 +683,9 @@ export default function ChatPage() {
       />
 
       <div className="flex-1 flex flex-col min-w-0 relative bg-[radial-gradient(circle_at_top_right,rgb(37_99_235_/_0.08),transparent_28rem)]">
-        <header className="flex items-center gap-3 px-3 sm:px-4 h-14 border-b border-border/50 flex-shrink-0 bg-background/85 backdrop-blur-sm">
+        <header className="flex h-16 flex-shrink-0 items-center gap-3 border-b border-border/50 bg-background/85 px-4 backdrop-blur-sm sm:h-[72px] sm:px-6">
           <button
-            className="lg:hidden p-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl transition-colors"
+            className="rounded-xl p-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open sidebar"
           >
@@ -693,32 +693,32 @@ export default function ChatPage() {
           </button>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-semibold text-foreground truncate">
+            <h1 className="truncate text-base font-semibold text-foreground sm:text-lg">
               {titleFromMessage(activeTitle)}
             </h1>
-            <div className="mt-0.5 hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <ShieldCheck size={11} className="text-primary" />
+            <div className="mt-1 hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+              <ShieldCheck size={13} className="text-primary" />
               Protected workspace
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <ThemeToggle className="hidden sm:inline-flex" />
             <button
               onClick={handleNewConversation}
-              className="hidden sm:flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-medium text-foreground hover:border-primary/40 hover:text-primary transition-colors"
+              className="hidden items-center gap-2 rounded-2xl border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary sm:flex"
             >
-              <Plus size={13} />
+              <Plus size={16} />
               New
             </button>
             {messages.length > 0 && (
               <button
                 onClick={handleClearConversation}
-                className="rounded-xl p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+                className="rounded-xl p-2.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label="Clear chat"
                 title="Clear chat"
               >
-                <Trash2 size={16} />
+              <Trash2 size={18} />
               </button>
             )}
           </div>
@@ -730,22 +730,22 @@ export default function ChatPage() {
           aria-live="polite"
           aria-label="Conversation"
         >
-          <div className="max-w-3xl mx-auto px-3 sm:px-4 py-6 space-y-6">
+          <div className="mx-auto max-w-4xl space-y-7 px-4 py-7 sm:px-6 sm:py-9">
             {messages.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="py-8 sm:py-14"
+                className="py-10 sm:py-16"
               >
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-accent">
-                  <Sparkles size={22} className="text-primary" />
+                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/25 bg-accent">
+                  <Sparkles size={26} className="text-primary" />
                 </div>
                 <div className="text-center">
-                  <TanzaiLogo size={32} className="justify-center mb-4" />
-                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+                  <TanzaiLogo size={36} className="mb-5 justify-center" />
+                  <h2 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                     Ask anything in any language
                   </h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+                  <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-muted-foreground">
                     Tanzai can help in Hindi, English, Hinglish, and more with clear answers,
                     practical writing, research, coding, and planning.
                   </p>
@@ -775,7 +775,7 @@ export default function ChatPage() {
         </main>
 
         <div className="flex-shrink-0 bg-background/80 backdrop-blur-sm border-t border-border/30">
-          <div className="max-w-3xl mx-auto">
+          <div className="mx-auto max-w-4xl">
             <ChatInputBar
               onSend={handleSend}
               isStreaming={isThinking}

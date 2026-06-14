@@ -15,7 +15,7 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-xl border border-border bg-card/80 p-1 shadow-sm backdrop-blur-sm',
+        'inline-flex items-center rounded-2xl border border-border bg-card/80 p-1.5 shadow-sm backdrop-blur-sm',
         className
       )}
       aria-label="Theme"
@@ -24,28 +24,28 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
         type="button"
         onClick={() => setTheme('light')}
         className={cn(
-          'flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
+          'flex h-9 items-center gap-2 rounded-xl px-3.5 text-sm font-medium transition-colors',
           isLight
             ? 'bg-primary text-primary-foreground'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         )}
         aria-pressed={isLight}
       >
-        <Sun size={14} />
+        <Sun size={16} />
         Light
       </button>
       <button
         type="button"
         onClick={() => setTheme('dark')}
         className={cn(
-          'flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
+          'flex h-9 items-center gap-2 rounded-xl px-3.5 text-sm font-medium transition-colors',
           !isLight
             ? 'bg-primary text-primary-foreground'
             : 'text-muted-foreground hover:bg-accent hover:text-foreground'
         )}
         aria-pressed={!isLight}
       >
-        <Moon size={14} />
+        <Moon size={16} />
         Dark
       </button>
     </div>

@@ -200,69 +200,69 @@ export function ChatSidebar({
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-72 flex flex-col bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out',
+          'fixed inset-y-0 left-0 z-40 flex w-[320px] flex-col border-r border-sidebar-border bg-sidebar transition-transform duration-300 ease-in-out xl:w-[340px]',
           'lg:relative lg:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
         aria-label="Chat navigation"
       >
-        <div className="flex items-center justify-between px-4 h-14 border-b border-sidebar-border flex-shrink-0">
-          <TanzaiLogo size={22} textSize="text-base" />
+        <div className="flex h-16 flex-shrink-0 items-center justify-between border-b border-sidebar-border px-5 sm:h-[72px]">
+          <TanzaiLogo size={26} textSize="text-xl" />
 
           <button
-            className="lg:hidden p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
             onClick={onClose}
             aria-label="Close sidebar"
           >
-            <X size={15} />
+            <X size={18} />
           </button>
         </div>
 
-        <div className="px-3 pt-3 pb-2 flex-shrink-0">
+        <div className="flex-shrink-0 px-4 pb-3 pt-4">
           <button
             onClick={() => {
               onNewConversation()
               onClose()
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-accent hover:bg-accent/80 text-sidebar-accent-foreground text-sm font-medium transition-colors border border-sidebar-border/50 group"
+            className="group flex w-full items-center gap-3 rounded-2xl border border-sidebar-border/50 bg-accent px-4 py-3.5 text-base font-medium text-sidebar-accent-foreground transition-colors hover:bg-accent/80"
           >
-            <Plus size={15} className="text-primary group-hover:rotate-90 transition-transform duration-200" />
+            <Plus size={18} className="text-primary transition-transform duration-200 group-hover:rotate-90" />
             New conversation
           </button>
         </div>
 
-        <div className="px-3 pb-2 flex-shrink-0">
+        <div className="flex-shrink-0 px-4 pb-3">
           <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
               placeholder="Search chats..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-input border border-border/60 rounded-lg pl-8 pr-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              className="w-full rounded-xl border border-border/60 bg-input py-3 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
               aria-label="Search conversations"
             />
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 pb-2" aria-label="Recent chats">
+        <nav className="flex-1 overflow-y-auto px-4 pb-3" aria-label="Recent chats">
           {filtered.length === 0 ? (
-            <div className="mt-4 rounded-xl border border-sidebar-border/50 bg-accent/30 px-3 py-4 text-center">
-              <MessageSquare size={16} className="mx-auto mb-2 text-primary/70" />
-              <p className="text-xs font-medium text-sidebar-foreground">
+            <div className="mt-4 rounded-2xl border border-sidebar-border/50 bg-accent/30 px-4 py-5 text-center">
+              <MessageSquare size={20} className="mx-auto mb-2 text-primary/70" />
+              <p className="text-sm font-medium text-sidebar-foreground">
                 {search ? 'No matching chats' : 'No conversations yet'}
               </p>
-              <p className="text-[11px] text-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {search ? 'Try a different search.' : 'Start a new conversation with Tanzai.'}
               </p>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               {filtered.map((chat) => (
                 <div
                   key={chat.id}
                   className={cn(
-                    'group rounded-xl transition-colors',
+                    'group rounded-2xl transition-colors',
                     chat.id === activeConversationId
                       ? 'bg-accent text-sidebar-accent-foreground'
                       : 'hover:bg-accent/60 text-sidebar-foreground'
@@ -273,51 +273,51 @@ export function ChatSidebar({
                       onSelectConversation(chat.id)
                       onClose()
                     }}
-                    className="w-full px-3 py-2.5 text-left"
+                    className="w-full px-4 py-3.5 text-left"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-xs font-medium">
+                      <p className="truncate text-sm font-semibold">
                         {chat.pinned ? 'Pinned · ' : ''}
                         {chat.title}
                       </p>
-                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                      <span className="shrink-0 text-xs text-muted-foreground">
                         {chat.date}
                       </span>
                     </div>
-                    <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
+                    <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                       {chat.preview}
                     </p>
                   </button>
 
-                  <div className="flex items-center gap-1 px-2 pb-2 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+                  <div className="flex items-center gap-1.5 px-3 pb-3 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                     <button
                       onClick={() => onTogglePinConversation(chat.id)}
-                      className="rounded-md p-1 text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-background/70 hover:text-foreground"
                       aria-label={chat.pinned ? 'Unpin chat' : 'Pin chat'}
                       title={chat.pinned ? 'Unpin chat' : 'Pin chat'}
                     >
-                      {chat.pinned ? <PinOff size={12} /> : <Pin size={12} />}
+                      {chat.pinned ? <PinOff size={14} /> : <Pin size={14} />}
                     </button>
                     <button
                       onClick={() => {
                         setRenamingChat(chat)
                         setRenameTitle(chat.title)
                       }}
-                      className="rounded-md p-1 text-muted-foreground hover:bg-background/70 hover:text-foreground"
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-background/70 hover:text-foreground"
                       aria-label="Rename chat"
                       title="Rename chat"
                     >
-                      <Pencil size={12} />
+                      <Pencil size={14} />
                     </button>
                     <button
                       onClick={() => {
                         setDeletingChat(chat)
                       }}
-                      className="rounded-md p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                       aria-label="Delete chat"
                       title="Delete chat"
                     >
-                      <Trash2 size={12} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
@@ -326,28 +326,28 @@ export function ChatSidebar({
           )}
         </nav>
 
-        <div className="border-t border-sidebar-border px-3 py-3 flex-shrink-0 relative">
+        <div className="relative flex-shrink-0 border-t border-sidebar-border px-4 py-4">
           <button
             onClick={() => setProfileOpen(!profileOpen)}
-            className="w-full flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-accent transition-colors group"
+            className="group flex w-full items-center gap-3 rounded-2xl px-3 py-3 transition-colors hover:bg-accent"
             aria-expanded={profileOpen}
             aria-label="User menu"
           >
-            <div className="w-8 h-8 rounded-full bg-accent border border-primary/25 flex items-center justify-center text-sm font-semibold text-primary flex-shrink-0">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-primary/25 bg-accent text-base font-semibold text-primary">
               {avatarLetter}
             </div>
 
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">
+              <p className="truncate text-sm font-medium text-sidebar-foreground">
                 {displayName}
               </p>
-              <p className="text-[10px] text-muted-foreground truncate">
+              <p className="truncate text-xs text-muted-foreground">
                 Tanzai User
               </p>
             </div>
 
             <ChevronDown
-              size={13}
+              size={16}
               className={cn('text-muted-foreground transition-transform', profileOpen && 'rotate-180')}
             />
           </button>

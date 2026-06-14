@@ -64,11 +64,11 @@ function renderTable(lines: string[], key: string) {
 
   return (
     <div key={key} className="my-4 max-w-full overflow-x-auto rounded-xl border border-border">
-      <table className="w-full min-w-max border-collapse text-left text-xs sm:text-sm">
+      <table className="w-full min-w-max border-collapse text-left text-sm sm:text-base">
         <thead className="bg-background/70 text-foreground">
           <tr>
             {headers.map((header, index) => (
-              <th key={index} className="border-b border-border px-3 py-2 font-semibold">
+              <th key={index} className="border-b border-border px-4 py-3 font-semibold">
                 {renderInline(header)}
               </th>
             ))}
@@ -78,7 +78,7 @@ function renderTable(lines: string[], key: string) {
           {rows.map((row, rowIndex) => (
             <tr key={rowIndex} className="odd:bg-background/35">
               {headers.map((_, cellIndex) => (
-                <td key={cellIndex} className="border-b border-border/50 px-3 py-2 align-top">
+                <td key={cellIndex} className="border-b border-border/50 px-4 py-3 align-top">
                   {renderInline(row[cellIndex] || '')}
                 </td>
               ))}
@@ -104,22 +104,22 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
   }
 
   return (
-    <div className="my-3 max-w-full overflow-hidden rounded-xl border border-border bg-background/85">
-      <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-1.5">
-        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+    <div className="my-4 max-w-full overflow-hidden rounded-2xl border border-border bg-background/85">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">
           {language || 'code'}
         </span>
         <button
           onClick={copyCode}
-          className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           aria-label="Copy code"
           title="Copy code"
         >
-          {copied ? <Check size={10} className="text-primary" /> : <Copy size={10} />}
+          {copied ? <Check size={13} className="text-primary" /> : <Copy size={13} />}
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <pre className="max-w-full overflow-x-auto p-3 text-xs leading-relaxed text-foreground">
+      <pre className="max-w-full overflow-x-auto p-4 text-sm leading-relaxed text-foreground">
         <code>{code}</code>
       </pre>
     </div>
@@ -162,10 +162,10 @@ function renderMarkdownBlocks(markdown: string, keyPrefix: string) {
       const level = heading[1].length
       const className =
         level === 1
-          ? 'mt-4 mb-2 text-lg font-semibold tracking-tight text-foreground'
+          ? 'mb-3 mt-5 text-2xl font-semibold tracking-tight text-foreground'
           : level === 2
-            ? 'mt-4 mb-2 text-base font-semibold text-foreground'
-            : 'mt-3 mb-1.5 text-sm font-semibold text-foreground'
+            ? 'mb-3 mt-5 text-xl font-semibold text-foreground'
+            : 'mb-2 mt-4 text-lg font-semibold text-foreground'
 
       blocks.push(
         <div key={`${keyPrefix}-heading-${index}`} className={className}>
@@ -185,7 +185,7 @@ function renderMarkdownBlocks(markdown: string, keyPrefix: string) {
       }
 
       blocks.push(
-        <ul key={`${keyPrefix}-ul-${index}`} className="my-3 space-y-1.5 pl-5">
+        <ul key={`${keyPrefix}-ul-${index}`} className="my-3 space-y-2 pl-6">
           {items.map((item, itemIndex) => (
             <li key={itemIndex} className="list-disc pl-1">
               {renderInline(item)}
@@ -205,7 +205,7 @@ function renderMarkdownBlocks(markdown: string, keyPrefix: string) {
       }
 
       blocks.push(
-        <ol key={`${keyPrefix}-ol-${index}`} className="my-3 space-y-1.5 pl-5">
+        <ol key={`${keyPrefix}-ol-${index}`} className="my-3 space-y-2 pl-6">
           {items.map((item, itemIndex) => (
             <li key={itemIndex} className="list-decimal pl-1">
               {renderInline(item)}
@@ -231,7 +231,7 @@ function renderMarkdownBlocks(markdown: string, keyPrefix: string) {
     }
 
     blocks.push(
-      <p key={`${keyPrefix}-p-${index}`} className="my-2 whitespace-pre-wrap">
+      <p key={`${keyPrefix}-p-${index}`} className="my-2.5 whitespace-pre-wrap">
         {renderInline(paragraph.join('\n'))}
       </p>
     )
@@ -244,7 +244,7 @@ function MessageContent({ content }: { content: string }) {
   const parts = content.split(/```([\s\S]*?)```/g)
 
   return (
-    <div className="min-w-0 max-w-full space-y-1 break-words">
+    <div className="min-w-0 max-w-full space-y-1.5 break-words">
       {parts.map((part, index) => {
         if (index % 2 === 1) {
           const [firstLine, ...rest] = part.replace(/^\n/, '').split('\n')
@@ -287,11 +287,11 @@ export function ChatMessage({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className={cn('flex gap-3 group', isAssistant ? 'justify-start' : 'justify-end')}
+      className={cn('group flex gap-3.5 sm:gap-4', isAssistant ? 'justify-start' : 'justify-end')}
     >
       {isAssistant && (
-        <div className="w-8 h-8 rounded-xl bg-accent border border-primary/25 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <Sparkles size={14} className="text-primary" />
+        <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-accent">
+          <Sparkles size={18} className="text-primary" />
         </div>
       )}
 
@@ -299,22 +299,22 @@ export function ChatMessage({
         className={cn(
           'flex min-w-0 flex-col gap-1',
           isAssistant
-            ? 'max-w-[calc(100%-2.75rem)] sm:max-w-[82%]'
-            : 'max-w-[86%] sm:max-w-[78%] items-end'
+            ? 'max-w-[calc(100%-3.5rem)] sm:max-w-[86%]'
+            : 'max-w-[88%] items-end sm:max-w-[80%]'
         )}
       >
         <div
           className={cn(
-            'min-w-0 max-w-full overflow-hidden rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm',
+            'min-w-0 max-w-full overflow-hidden rounded-3xl px-4 py-3.5 text-base leading-7 shadow-sm sm:px-5 sm:py-4',
             isAssistant
-              ? 'bg-card border border-border/60 text-foreground rounded-tl-sm'
-              : 'bg-primary text-primary-foreground rounded-tr-sm'
+              ? 'rounded-tl-sm border border-border/60 bg-card text-foreground'
+              : 'rounded-tr-sm bg-primary text-primary-foreground'
           )}
         >
           {message.isStreaming ? (
             <span className="break-words whitespace-pre-wrap">
               {message.content}
-              <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 cursor-blink align-middle" />
+              <span className="ml-0.5 inline-block h-5 w-0.5 cursor-blink bg-primary align-middle" />
             </span>
           ) : (
             <MessageContent content={message.content} />
@@ -323,35 +323,35 @@ export function ChatMessage({
 
         <div
           className={cn(
-            'flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity duration-200 px-1',
+            'flex items-center gap-2 px-1 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100',
             isAssistant ? 'flex-row' : 'flex-row-reverse'
           )}
         >
-          <span className="text-[10px] text-muted-foreground/50">{message.timestamp}</span>
+          <span className="text-xs text-muted-foreground/50">{message.timestamp}</span>
 
           <button
             onClick={copyToClipboard}
-            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             aria-label="Copy message"
           >
-            {copied ? <Check size={11} className="text-primary" /> : <Copy size={11} />}
+            {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
           </button>
 
           {isAssistant && onRegenerate && (
             <button
               onClick={() => onRegenerate(message.id)}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Regenerate response"
               title="Regenerate response"
             >
-              <RefreshCw size={11} />
+              <RefreshCw size={14} />
             </button>
           )}
 
           {isAssistant && onContinue && (
             <button
               onClick={() => onContinue(message.id)}
-              className="rounded-md px-1.5 py-1 text-[10px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="rounded-md px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Continue response"
               title="Continue response"
             >
@@ -365,11 +365,11 @@ export function ChatMessage({
                 const next = window.prompt('Edit message', message.content)
                 if (next?.trim()) onEdit(message.id, next.trim())
               }}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               aria-label="Edit message"
               title="Edit message"
             >
-              <Pencil size={11} />
+              <Pencil size={14} />
             </button>
           )}
 
@@ -378,19 +378,19 @@ export function ChatMessage({
               onClick={() => {
                 if (window.confirm('Delete this message?')) onDelete(message.id)
               }}
-              className="p-1 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
               aria-label="Delete message"
               title="Delete message"
             >
-              <Trash2 size={11} />
+              <Trash2 size={14} />
             </button>
           )}
         </div>
       </div>
 
       {!isAssistant && (
-        <div className="w-8 h-8 rounded-xl bg-accent border border-border/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <User size={14} className="text-muted-foreground" />
+        <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-border/40 bg-accent">
+          <User size={18} className="text-muted-foreground" />
         </div>
       )}
     </motion.div>
@@ -403,15 +403,15 @@ export function ThinkingIndicator() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="flex gap-3"
+      className="flex gap-4"
     >
-      <div className="w-8 h-8 rounded-xl bg-accent border border-primary/25 flex items-center justify-center flex-shrink-0">
-        <Sparkles size={14} className="text-primary" />
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-primary/25 bg-accent">
+        <Sparkles size={18} className="text-primary" />
       </div>
-      <div className="bg-card border border-border/60 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
-        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 thinking-dot" />
-        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 thinking-dot" />
-        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 thinking-dot" />
+      <div className="flex items-center gap-2 rounded-3xl rounded-tl-sm border border-border/60 bg-card px-5 py-4">
+        <div className="thinking-dot h-2 w-2 rounded-full bg-primary/60" />
+        <div className="thinking-dot h-2 w-2 rounded-full bg-primary/60" />
+        <div className="thinking-dot h-2 w-2 rounded-full bg-primary/60" />
       </div>
     </motion.div>
   )

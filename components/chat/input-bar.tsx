@@ -54,9 +54,9 @@ export function ChatInputBar({
   const canSend = value.trim().length > 0 && !isStreaming
 
   return (
-    <div className="px-3 sm:px-4 pb-4 pt-2">
+    <div className="px-4 pb-5 pt-3 sm:px-6">
       {!value && !focused && (
-        <div className="flex flex-wrap gap-2 justify-center mb-3">
+        <div className="mb-3 flex flex-wrap justify-center gap-2.5">
           {suggestions.map((s) => (
             <button
               key={s}
@@ -64,7 +64,7 @@ export function ChatInputBar({
                 setValue(s)
                 textareaRef.current?.focus()
               }}
-              className="text-xs text-muted-foreground border border-border/60 rounded-full px-3 py-1.5 hover:border-primary/40 hover:text-foreground transition-all"
+              className="rounded-full border border-border/60 px-4 py-2 text-sm text-muted-foreground transition-all hover:border-primary/40 hover:text-foreground"
             >
               {s}
             </button>
@@ -74,35 +74,35 @@ export function ChatInputBar({
 
       <div
         className={cn(
-          'relative glass rounded-2xl border transition-all duration-200',
+          'glass relative rounded-3xl border transition-all duration-200',
           focused ? 'border-primary/40' : 'border-border/60'
         )}
       >
-        <div className="flex items-center gap-1 px-3 pt-2">
+        <div className="flex items-center gap-1.5 px-4 pt-3">
           <button
             type="button"
             disabled
-            className="rounded-lg p-1.5 text-muted-foreground/45 cursor-not-allowed"
+            className="cursor-not-allowed rounded-lg p-2 text-muted-foreground/45"
             aria-label="File upload placeholder"
             title="File upload placeholder"
           >
-            <Paperclip size={14} />
+            <Paperclip size={17} />
           </button>
           <button
             type="button"
             disabled
-            className="rounded-lg p-1.5 text-muted-foreground/45 cursor-not-allowed"
+            className="cursor-not-allowed rounded-lg p-2 text-muted-foreground/45"
             aria-label="Web search placeholder"
             title="Web search placeholder"
           >
-            <Globe size={14} />
+            <Globe size={17} />
           </button>
           <button
             type="button"
             disabled={!onToggleMemory}
             onClick={onToggleMemory}
             className={cn(
-              'inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] transition-colors',
+              'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs transition-colors',
               memoryEnabled
                 ? 'bg-primary/10 text-primary'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -112,7 +112,7 @@ export function ChatInputBar({
             aria-pressed={memoryEnabled}
             title={memoryEnabled ? 'Memory on' : 'Memory off'}
           >
-            <Brain size={14} />
+            <Brain size={17} />
             <span className="hidden sm:inline">Memory {memoryEnabled ? 'on' : 'off'}</span>
           </button>
         </div>
@@ -127,22 +127,22 @@ export function ChatInputBar({
           placeholder={isStreaming ? 'Tanzai is thinking...' : 'Ask anything in any language'}
           rows={1}
           disabled={isStreaming}
-          className="w-full bg-transparent px-3 pt-2 pb-2 text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none leading-relaxed min-h-[56px]"
+          className="min-h-[72px] w-full resize-none bg-transparent px-4 pb-3 pt-3 text-base leading-7 text-foreground placeholder:text-muted-foreground/50 focus:outline-none sm:text-lg"
           aria-label="Message input"
         />
 
-        <div className="flex items-center justify-between px-3 pb-2.5">
-          <p className="text-[10px] text-muted-foreground/40 hidden sm:block">
+        <div className="flex items-center justify-between px-4 pb-3.5">
+          <p className="hidden text-xs text-muted-foreground/45 sm:block">
             {value.length > 0 ? `${value.length} chars` : 'Enter to send, Shift+Enter for newline'}
           </p>
 
           {isStreaming ? (
             <button
               onClick={onStop}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-destructive/15 text-destructive border border-destructive/20 hover:bg-destructive/25 transition-colors"
+              className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/15 px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/25"
               aria-label="Stop generation"
             >
-              <Square size={11} />
+              <Square size={14} />
               Stop
             </button>
           ) : (
@@ -150,20 +150,20 @@ export function ChatInputBar({
               onClick={handleSend}
               disabled={!canSend}
               className={cn(
-                'w-8 h-8 rounded-xl flex items-center justify-center transition-all',
+                'flex h-11 w-11 items-center justify-center rounded-2xl transition-all',
                 canSend
                   ? 'bg-primary text-primary-foreground hover:opacity-90 glow'
                   : 'bg-muted text-muted-foreground cursor-not-allowed'
               )}
               aria-label="Send message"
             >
-              <ArrowUp size={15} />
+              <ArrowUp size={19} />
             </button>
           )}
         </div>
       </div>
 
-      <p className="text-center text-[10px] text-muted-foreground/40 mt-2">
+      <p className="mt-2.5 text-center text-xs text-muted-foreground/45">
         Tanzai can make mistakes. Consider verifying important information.
       </p>
     </div>
