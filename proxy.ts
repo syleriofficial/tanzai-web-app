@@ -14,7 +14,26 @@ function redirectWithSupabaseCookies(url: URL, response: NextResponse) {
   return redirectResponse
 }
 
+function canonicalRedirect(request: NextRequest) {
+  const host = request.headers.get('host') || ''
+  const forwardedProto = request.headers.get('x-forwarded-proto')
+  const shouldUseApex = host === 'www.tanzaiai.com'
+  const shouldUseHttps =
+    (host === 'tanzaiai.com' || host === 'www.tanzaiai.com') && forwardedProto === 'http'
+
+  if (!shouldUseApex && !shouldUseHttps) return null
+
+  const url = request.nextUrl.clone()
+  url.protocol = 'https:'
+  if (shouldUseApex) url.hostname = 'tanzaiai.com'
+
+  return NextResponse.redirect(url, 308)
+}
+
 export async function proxy(request: NextRequest) {
+  const canonicalResponse = canonicalRedirect(request)
+  if (canonicalResponse) return canonicalResponse
+
   const { supabase, response } = await createMiddlewareClient(request)
 
   const {
