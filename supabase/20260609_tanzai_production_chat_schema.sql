@@ -42,7 +42,7 @@ begin
   update public.chats
   set
     title = case
-      when role = 'user' and (title = 'New conversation' or title is null)
+      when new.role = 'user' and (title = 'New conversation' or title = 'New Chat' or title is null)
         then public.make_chat_title(new.content)
       else title
     end,
